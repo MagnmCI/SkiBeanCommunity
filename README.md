@@ -13,10 +13,10 @@ The **QuickPID** library is used to regulate heating power based on the measured
 | `PID;ON`        | Enables PID control (automatic mode). |
 | `PID;OFF`       | Disables PID control (switches to manual mode). |
 | `PID;SV;XXX`    | Sets the PID **setpoint temperature** (XXX is in °C, e.g., `PID;SV;250` sets the target to 250°C). |
-| `PID;KP;XX.X`   | Temporarily sets the proportional tuning of the PID control. |
-| `PID;KI;XX.X`   | Temporarily sets the integral tuning of the PID control. |
-| `PID;KD;XX.X`   | Temporarily sets the derivative tuning of the PID control. |
-| `PID;RST`       | Temporarily apply the updated PID tunings. |
+| `PID;KP;XX.X`   | Temporarily apply the proportional tuning of the PID control. |
+| `PID;KI;XX.X`   | Temporarily apply the integral tuning of the PID control. |
+| `PID;KD;XX.X`   | Temporarily apply the derivative tuning of the PID control. |
+| `PID;PM;E|M`    | Temporarily change pMode from default P_ON_E to P_ON_M, or reverse. |
 | `OT1;XX`        | Manually sets heater power to **XX%** (only works in MANUAL mode). |
 | `READ`          | Retrieves current temperature, set temperature, heater, and vent power. |
 
@@ -27,7 +27,7 @@ The **QuickPID** library is used to regulate heating power based on the measured
 | `OFF`           | Shuts down the system. |
 | `ESTOP`         | Emergency stop: Sets heater to 0% and vent to 100%. |
 | `DRUM;XX`       | Starts/stops the drum motor (1 = ON, 0 = OFF). |
-| `FILTER;XX`     | Controls filter fan power (0-100%). |
+| `FILTER;XX`     | Controls filter fan power (1 fastest - 4 slowest; 0 off). |
 | `COOL;XX`       | Activates cooling function (0-100%). |
 | `CHAN`          | Sends active channel configuration. |
 | `UNITS;C/F`     | Sets temperature units to **Celsius (C)** or **Fahrenheit (F)**. |

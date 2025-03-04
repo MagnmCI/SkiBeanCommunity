@@ -131,17 +131,16 @@ double temp          = 0.0;           // Filtered temperature
 unsigned long lastEventTime = 0;
 const unsigned long LAST_EVENT_TIMEOUT = 10UL * 1000000UL; // 10 seconds (micros)
 char CorF            = 'C';           // 'C' or 'F'
-int filtWeight       = 80;            // Filter weight (Artisan default)
 
 // -----------------------------------------------------------------------------
 // Define PID variables
 // -----------------------------------------------------------------------------
-double setpoint = 250.0; // Desired temperature (adjustable)
-double input, output;
-double Kp = 1.0, Ki = 0.2, Kd = 1.0; // try P_ON_Mesaure, p influence is inverted, higher is more conservative
-
-// use P_ON_M per: http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
-PID myPID(&input, &output, &setpoint, Kp, Ki, Kd, P_ON_M, DIRECT);
+double pInput, pOutput;
+double pSetpoint = 0.0; // Desired temperature (adjustable)
+double Kp = 20.0, Ki = 1.0, Kd = 3.0;
+int pMode = P_ON_M; // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
+int pSampleTime = 1000; //ms
+PID myPID(&pInput, &pOutput, &pSetpoint, Kp, Ki, Kd, pMode, DIRECT);  //pid instance with our default values
 
 int manualHeatLevel = 50;
 
@@ -157,7 +156,6 @@ const String CMD_FILTER       = "FILTER";
 const String CMD_COOL         = "COOL";
 const String CMD_CHAN         = "CHAN";
 const String CMD_UNITS        = "UNITS";
-const String CMD_FILTER_WEIGHT= "FILT";
 
 // -----------------------------------------------------------------------------
 // Forward Declarations
@@ -176,17 +174,15 @@ class MyServerCallbacks : public BLEServerCallbacks {
     deviceConnected = true;
 
     // Change BLE connection parameters per apple ble guidelines
-    // (for this client, min interval 15ms (/1.25), max 30ms (/1.25), latency 4 frames, timeout 2s)
+    // (for this client, min interval 15ms (/1.25), max 30ms (/1.25), latency 4 frames, timeout 5sec(/10ms)
     // https://docs.silabs.com/bluetooth/4.0/bluetooth-miscellaneous-mobile/selecting-suitable-connection-parameters-for-apple-devices
-    pServer->updateConnParams(param->connect.remote_bda, 0x000C, 0x0018, 0x0004, 0x07D0);
+    pServer->updateConnParams(param->connect.remote_bda, 12, 24, 4, 500);
    
     D_println("BLE: Client connected.");
   }
   void onDisconnect(BLEServer* pServer) override {
     deviceConnected = false;
     D_println("BLE: Client disconnected. Restarting advertising...");
-    pServer->getAdvertising()->stop();
-    delay(10);
     pServer->getAdvertising()->start();
   }
 };
@@ -200,8 +196,8 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
     if (rxValue.length() > 0) {
       String input = String(rxValue.c_str());
-      D_print("BLE Write Received: ");
-      D_println(input);
+      //D_print("BLE Write Received: ");
+      //D_println(input);
       parseAndExecuteCommands(input);
     }
   }
@@ -217,12 +213,12 @@ bool itsbeentoolong() {
 }
 
 void notifyClient(const String& message) {
-    D_println("Attempting to notify BLE client with: " + message);
+    //D_println("Attempting to notify BLE client with: " + message);
 
     if (deviceConnected && pTxCharacteristic) {
         pTxCharacteristic->setValue(message.c_str());
         pTxCharacteristic->notify();
-        D_println("Notification sent successfully.");
+       //D_println("Notification sent successfully.");
     } else {
       D_println("Notification failed. Device not connected or TX characteristic unavailable.");
     }
@@ -342,11 +338,11 @@ double calculateTemp() {
     return v;
 }
 
-MedianFilter<double> medianFilter(5);
+MedianFilter<double> tempFilter(5);
 void filtTemp(double v){
   if(v < 0 && v >= 300) { return; } //don't process blatantly bogus values
-  medianFilter.AddValue(v);
-  temp = medianFilter.GetFiltered();
+  tempFilter.AddValue(v);
+  temp = tempFilter.GetFiltered();
 }
 
 void handleCHAN() {
@@ -359,10 +355,9 @@ void handleCHAN() {
 //adjusting the heating power based on PID temperature control
 void handlePIDControl() {
     if (myPID.GetMode() == AUTOMATIC) {
-        input = temp; // Read current temperature
+        pInput = temp; // give current temperature as input to pid model
         myPID.Compute();
-        int heatValue = constrain(output, 0, 100);
-        handleHEAT(heatValue);
+        handleHEAT((int) pOutput);
     } else {
         handleHEAT(manualHeatLevel);  // Use stored manual heat level
     }
@@ -372,32 +367,32 @@ void handlePIDControl() {
 void setPIDMode(bool usePID) {
     if (usePID) {
         myPID.SetMode(AUTOMATIC); // Enable PID
-        Serial.println("PID mode set to AUTOMATIC");
+        D_println("PID mode set to AUTOMATIC");
     } else {
         myPID.SetMode(MANUAL); // Disable PID
         manualHeatLevel = 0;  // Set heat to 0% for safety
         handleHEAT(manualHeatLevel); // Apply the change immediately
-        Serial.println("PID mode set to MANUAL");
+        D_println("PID mode set to MANUAL");
     }
 }
 
-
 void handleOT1(uint8_t value) {
     if (myPID.GetMode() == MANUAL) {
-        manualHeatLevel = constrain(value, 0, 100); // Set manual heat level
-        handleHEAT(manualHeatLevel); // Apply the new setting
+      manualHeatLevel = constrain(value, 0, 100); // Set manual heat level
+      handleHEAT(manualHeatLevel); // Apply the new setting
+    } else if (myPID.GetMode() == AUTOMATIC) {
+      setPIDMode(false); // Disable PID control
     }
 }
 
 void handleREAD() {
-    String output = "0," + String(temp, 1) + "," + String(temp, 1) + "," +
-                    String(sendBuffer[HEAT_BYTE]) + "," +
-                    String(sendBuffer[VENT_BYTE]) + "\r\n";
+    String readMsg = "0," + String(temp, 1) + "," + String(temp, 1) + "," +
+          String(sendBuffer[HEAT_BYTE]) + "," +
+          String(sendBuffer[VENT_BYTE]) + "\r\n";
+    //D_print("READ Output: ");
+    //D_println(readMsg);
 
-    D_print("READ Output: ");
-    D_println(output);
-
-    notifyClient(output);
+    notifyClient(readMsg);
     lastEventTime = micros();
 }
 
@@ -411,7 +406,11 @@ void handleHEAT(uint8_t value) {
 void handleVENT(uint8_t value) {
     if (value <= 100) {
         setValue(&sendBuffer[VENT_BYTE], value);
-        handleFILTER(value);
+        if (value == 0) {
+            handleFILTER(value); // off
+        } else {
+            handleFILTER((int) round(4-((value-1)*4/100))); //convert 0-100 to inverted 4-1
+        }
     }
     lastEventTime = micros();
 }
@@ -426,10 +425,8 @@ void handleDRUM(uint8_t value) {
 }
 
 void handleFILTER(uint8_t value) {
-    if (value < 100) {
-      setValue(&sendBuffer[FILTER_BYTE], (int) round(value*(filtWeight/100.0)*4/100)); //scale 0-100/0-4
-    } else if (value == 100) {
-      setValue(&sendBuffer[FILTER_BYTE], (int) round(value*4/100)); //ignore filtweight if 100% value
+    if (value >= 0 && value <= 4 ) {
+        setValue(&sendBuffer[FILTER_BYTE], value); //0 off; 1 fastest -> 4 slowest
     }
     lastEventTime = micros();
 }
@@ -443,7 +440,7 @@ void handleCOOL(uint8_t value) {
 }
 
 void eStop() {
-    Serial.println("Emergency Stop Activated! Heater OFF, Vent 100%");
+    D_println("Emergency Stop Activated! Heater OFF, Vent 100%");
     handleHEAT(0);   // Turn off heater
     handleVENT(100); // Set vent to 100%
 }
@@ -452,7 +449,7 @@ void parseAndExecuteCommands(String input) {
     input.trim();
     input.toUpperCase();
  
-    D_println("Parsing command: " + input);
+    //D_println("Parsing command: " + input);
 
     int split1 = input.indexOf(';');
     String command = "";
@@ -482,35 +479,56 @@ void parseAndExecuteCommands(String input) {
         } else if (subcommand == "SV") {
             double newSetpoint = param.toDouble();
             if (newSetpoint > 0 && newSetpoint <= 300) {  // Example range check
-                setpoint = newSetpoint;
-                Serial.print("New Setpoint: ");
-                Serial.println(setpoint);
+                pSetpoint = newSetpoint;
+                D_print("New Setpoint: ");
+                D_println(pSetpoint);
             }
         } else if (subcommand == "KP") {
+            D_print("Setting KP to: ");
+            D_println(param.toDouble());
             Kp = param.toDouble();
+            myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
         } else if (subcommand == "KI") {
+            D_print("Setting KI to: ");
+            D_println(param.toDouble());
             Ki = param.toDouble();
+            myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
         } else if (subcommand == "KD") {
+            D_print("Setting KD to: ");
+            D_println(param.toDouble());
             Kd = param.toDouble();
-        } else if (subcommand == "RST") {
-            myPID.SetTunings((float) Kp, (float) Ki, (float) Kd); // apply the pid params to running config
+            myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
+        } else if (subcommand == "PM") {
+            D_print("Setting PMode to: ");
+            D_println(param);
+            if (param == "M") {
+              pMode = P_ON_M;
+              myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
+            } else {
+              pMode = P_ON_E;
+              myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
+            }
         }
     } else if (command == "OT1") {  
-        uint8_t value = param.toInt();
-        handleOT1(value);  // Manual heater control (only in MANUAL mode)
+        D_println("Setting OT1: " + param);
+        handleOT1(param.toInt());  // Manual heater control (only in MANUAL mode)
     } else if (command == "READ") {
         handleREAD();
-    } else if (command == "OT2") {  
+    } else if (command == "OT2") { 
+        D_println("Setting OT2: " + param); 
         handleVENT(param.toInt());  // Set fan duty
     } else if (command == "OFF") {  
         shutdown();  // Shut down system
     } else if (command == "ESTOP") {  
         eStop();  // Emergency stop (heater = 0, vent = 100)
     } else if (command == "DRUM") {  
+        D_println("Setting Drum: " + param); 
         handleDRUM(param.toInt());  // Start/stop the drum
-    } else if (command == "FILTER") {  
+    } else if (command == "FILTER") { 
+        D_println("Setting Filter: " + param);  
         handleFILTER(param.toInt());  // Turn on/off filter fan
     } else if (command == "COOL") {  
+        D_println("Setting Cool: " + param);  
         handleCOOL(param.toInt());  // Cool the beans
     } else if (command == "CHAN") {  
         handleCHAN();  // Handle TC4 init message
@@ -557,7 +575,7 @@ void handleLED() {
 void setup() {
     rgbLedWrite(LED_PIN, LED_GREEN[0], LED_GREEN[1], LED_GREEN[2]);
     Serial.begin(115200);
-    Serial.println("Starting HiBean ESP32 BLE Roaster Control.");
+    D_println("Starting HiBean ESP32 BLE Roaster Control.");
     delay(3000); //let fw upload finish before we take over hwcdc serial tx/rx
 
     D_println("Serial SERIAL_DEBUG ON!");
@@ -600,14 +618,17 @@ void setup() {
     attachInterrupt(RX_PIN, watchRoasterStart, FALLING);
 
   // Set PID to start in MANUAL mode
-    myPID.SetMode(MANUAL);
-    myPID.SetOutputLimits(0.0,100.0);
+  myPID.SetMode(MANUAL);
 
-    // Ensure heat starts at 0% for safety
-    manualHeatLevel = 0;
-    handleHEAT(manualHeatLevel);
+  // clamp output limits to 0-100(% heat), set sample interval 
+  myPID.SetOutputLimits(0.0,100.0);
+  myPID.SetSampleTime(pSampleTime);
 
-    shutdown();
+  // Ensure heat starts at 0% for safety
+  manualHeatLevel = 0;
+  handleHEAT(manualHeatLevel);
+
+  shutdown();
 }
 
 void loop() {
