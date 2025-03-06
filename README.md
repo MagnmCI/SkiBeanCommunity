@@ -16,7 +16,7 @@ The **QuickPID** library is used to regulate heating power based on the measured
 | `PID;KP;XX.X`   | Temporarily apply the proportional tuning of the PID control. |
 | `PID;KI;XX.X`   | Temporarily apply the integral tuning of the PID control. |
 | `PID;KD;XX.X`   | Temporarily apply the derivative tuning of the PID control. |
-| `PID;PM;E|M`    | Temporarily change pMode from default P_ON_E to P_ON_M, or reverse. |
+| `PID;PM;E`      | Temporarily change pMode: E = P_ON_E to M = P_ON_M(default), or reverse. |
 | `OT1;XX`        | Manually sets heater power to **XX%** (only works in MANUAL mode). |
 | `READ`          | Retrieves current temperature, set temperature, heater, and vent power. |
 
