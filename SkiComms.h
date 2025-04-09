@@ -149,11 +149,12 @@ double calculateTemp() {
     return v;
 }
 
-MedianFilter<double> tempFilter(5);
+MedianFilter<double> tempFilter(7);
 void filtTemp(double v){
-  if(v < 0 && v >= 300) { return; } //don't process blatantly bogus values
-  tempFilter.AddValue(v);
-  temp = tempFilter.GetFiltered();
+  int maxV = ((CorF == 'F') ? 500 : 260); //pick appropriate max cutoff given C or F units
+  if(v < 0 || v > maxV) { return; } //don't process blatantly bogus values
+  tempFilter.AddValue(v); //add to the collection
+  temp = tempFilter.GetFiltered(); //update global temp
 }
 
 void extern getRoasterMessage() {

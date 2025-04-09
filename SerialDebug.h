@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 // Set SERIAL_DEBUG to 1 to enable serial output
-// Trying to print AND roaster rx/tx is not compatible with single UART boards (ie. s3-zero)
+// Trying to serial.print AND do roaster rx/tx is not compatible with s3-zero single usb
 // -----------------------------------------------------------------------------
 #define SERIAL_DEBUG 0 //set to 1 to turn on
 
