@@ -15,9 +15,9 @@
 #include "SkiCMD.h"
 
 // -----------------------------------------------------------------------------
-// Current Sketch and Release Version (for BLE)
+// Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.0.1");
+String firmWareVersion = String("1.0.2");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------
@@ -31,8 +31,7 @@ double temp          = 0.0;           // Filtered temperature
 double pInput, pOutput;
 double pSetpoint = 0.0; // Desired temperature (adjustable on the fly)
 int pMode = P_ON_M; // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
-// was 20,1,3 at 1sec
-double Kp = 20.0, Ki = 0.5, Kd = 4.0; // pid calibrations (adjustable on the fly)
+double Kp = 12.0, Ki = 0.5, Kd = 5.0; // pid calibrations for P_ON_M (adjustable on the fly)
 int pSampleTime = 1000; //ms (adjustable on the fly)
 int manualHeatLevel = 50;
 PID myPID(&pInput, &pOutput, &pSetpoint, Kp, Ki, Kd, pMode, DIRECT);  //pid instance with our default values

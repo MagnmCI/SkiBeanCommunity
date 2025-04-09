@@ -121,7 +121,7 @@ void extern initBLE() {
       sketchNameCharacteristic->setValue(sketchName);
       sketchNameCharacteristic->addDescriptor(new BLE2902());
     BLECharacteristic* firmwareCharacteristic = devInfoService->createCharacteristic("2A26", BLECharacteristic::PROPERTY_READ);
-      firmwareCharacteristic->setValue(firmWareVersion);
+      firmwareCharacteristic->setValue(sketchName + " " + firmWareVersion);
       firmwareCharacteristic->addDescriptor(new BLE2902());
     
     devInfoService->start();

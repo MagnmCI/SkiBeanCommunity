@@ -7,7 +7,8 @@ extern double Kp, Ki, Kd;
 extern int pMode, pSampleTime, manualHeatLevel;
 
 // -----------------------------------------------------------------------------
-// Command Strings
+// Command Strings(why declared if not used?)
+// https://github.com/greencardigan/TC4-shield/blob/master/applications/Artisan/aArtisan/trunk/src/aArtisan/commands.txt
 // -----------------------------------------------------------------------------
 const String CMD_READ         = "READ";
 const String CMD_HEAT         = "OT1";
@@ -137,7 +138,8 @@ void handlePIDControl() {
     if (myPID.GetMode() == AUTOMATIC) {
         pInput = temp; // give current temperature as input to pid model
         myPID.Compute();
-        handleHEAT((int) pOutput);
+        int roundedHeat = std::round(pOutput / 5.0) * 5;
+        handleHEAT(roundedHeat);
     } else {
         handleHEAT(manualHeatLevel);  // Use stored manual heat level
     }
@@ -193,20 +195,21 @@ void parseAndExecuteCommands(String input) {
                 D_print("New Setpoint: ");
                 D_println(pSetpoint);
             }
-        } else if (subcommand == "KP") {
-            D_print("Setting KP to: ");
-            D_println(param.toDouble());
-            Kp = param.toDouble();
-            myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
-        } else if (subcommand == "KI") {
-            D_print("Setting KI to: ");
-            D_println(param.toDouble());
-            Ki = param.toDouble();
-            myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
-        } else if (subcommand == "KD") {
-            D_print("Setting KD to: ");
-            D_println(param.toDouble());
-            Kd = param.toDouble();
+        } else if (subcommand == "T") {
+            double pidTune[3]; //pp.p;ii.i;dd.d
+            int paramCount = 0;
+            while(param.length() > 0) {
+                int index = param.indexOf(';');
+                if (index == -1) { // No delim found
+                    pidTune[paramCount++] = param.toDouble(); //remaining string
+                    break;
+                } else {
+                    pidTune[paramCount++] = param.substring(0, index).toDouble(); //grab first
+                    param = param.substring(index+1); //trim string
+                }
+            }
+            Kp, Ki, Kd = pidTune[0], pidTune[1], pidTune[2];
+            D_print("Kp: "); D_println(Kp); D_print("Ki: "); D_println(Ki); D_print("Kd: "); D_println(Kd);
             myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
         } else if (subcommand == "PM") {
             D_print("Setting PMode to: ");
@@ -218,8 +221,8 @@ void parseAndExecuteCommands(String input) {
               pMode = P_ON_E;
               myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
             }
-        } else if (subcommand == "ST") {
-            D_print("Setting Sample Time to: ");
+        } else if (subcommand == "CT") {
+            D_print("Setting Cycle Time to: ");
             D_println(param.toDouble());
             myPID.SetSampleTime(pSampleTime);
         }
