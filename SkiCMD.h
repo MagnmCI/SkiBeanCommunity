@@ -1,10 +1,43 @@
 // -----------------------------------------------------------------------------
+// All HiBean commands TO roaster
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
 // External variables
 // -----------------------------------------------------------------------------
+extern double temp;
+extern char CorF;
 extern PID myPID;
 extern double pInput, pOutput, pSetpoint;
 extern double Kp, Ki, Kd;
 extern int pMode, pSampleTime, manualHeatLevel;
+
+// -----------------------------------------------------------------------------
+// Timing Constants
+// -----------------------------------------------------------------------------
+const int PULSE_ONE       = 1200;
+const int PULSE_ZERO      = 650;
+const int POST_PULSE_DELAY= 750;
+const int START_PULSE     = 7500;
+const int START_DELAY     = 3800;
+
+// -----------------------------------------------------------------------------
+// Allocate buffers
+// -----------------------------------------------------------------------------
+const int CONTROLLER_LENGTH = 6;   // 6 bytes sent to roaster
+uint8_t sendBuffer[CONTROLLER_LENGTH];
+
+// -----------------------------------------------------------------------------
+// Control Byte Indices
+// -----------------------------------------------------------------------------
+enum ControlBytes {
+    VENT_BYTE = 0,
+    DRUM_BYTE = 3,
+    COOL_BYTE = 2,
+    FILTER_BYTE = 1,
+    HEAT_BYTE = 4,
+    CHECK_BYTE = 5
+};
 
 // -----------------------------------------------------------------------------
 // Command Strings(why declared if not used?)
@@ -34,6 +67,7 @@ void handleCOOL(uint8_t value);
 void eStop();
 void handlePIDControl();
 void setPIDMode(bool usePID);
+void setValue(uint8_t* bytePtr, uint8_t value);
 
 // -----------------------------------------------------------------------------
 // Utility Functions
@@ -251,5 +285,47 @@ void parseAndExecuteCommands(String input) {
         handleCHAN();  // Handle TC4 init message
     } else if (command == "UNITS") {  
         if (split1 >= 0) CorF = input.charAt(split1 + 1);  // Set temperature units
+    }
+}
+
+void pulsePin(int pin, int duration) {
+  #if SERIAL_DEBUG == 0
+    digitalWrite(pin, LOW);
+    delayMicroseconds(duration);
+    digitalWrite(pin, HIGH);
+  #endif
+}
+
+// Control Bytes & Checksum
+void setControlChecksum() {
+    uint8_t sum = 0;
+    for (int i = 0; i < (CONTROLLER_LENGTH - 1); i++) {
+        sum += sendBuffer[i];
+    }
+    sendBuffer[CHECK_BYTE] = sum;  // Correct use of CHECK_BYTE
+}
+
+void setValue(uint8_t* bytePtr, uint8_t value) {
+    *bytePtr = value;
+    setControlChecksum();
+}
+
+void extern sendRoasterMessage() {
+    // Start pulse
+    pulsePin(TX_PIN, START_PULSE);
+    delayMicroseconds(START_DELAY);
+
+    // Send each byte, bit by bit
+    for (int i = 0; i < CONTROLLER_LENGTH; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (bitRead(sendBuffer[i], j) == 1) {
+                // '1' bit
+                pulsePin(TX_PIN, 1500);
+            } else {
+                // '0' bit
+                pulsePin(TX_PIN, PULSE_ZERO);
+            }
+            delayMicroseconds(POST_PULSE_DELAY);
+        }
     }
 }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Pin Definitions
+// Pin Definitions for various devices
 // -----------------------------------------------------------------------------
 #if SERIAL_DEBUG == 1
   const int TX_PIN = NULL;  // bogus pin

@@ -1,29 +1,34 @@
 /***************************************************
  * HiBean ESP32 BLE Roaster Control
  *
- * Libraries Required: MedianFilterLib 1.0.1, PID 1.2.0
+ * Libraries Required: PID 1.2.0, NimBLE-Arduino 2.3.6
  ***************************************************/
 
 #include <Arduino.h>
-#include <MedianFilterLib.h>
 #include <PID_v1.h>
 #include "SkiPinDefns.h"
 #include "SerialDebug.h"
 #include "SkiBLE.h"
-#include "SkiComms.h"
 #include "SkiLED.h"
 #include "SkiCMD.h"
+#include "SkiParser.h"
 
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.0.2");
+String firmWareVersion = String("1.1.0");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------
 // Global Bean Temperature Variable
 // -----------------------------------------------------------------------------
-double temp          = 0.0;           // Filtered temperature
+double temp          = 0.0; // temperature
+char CorF = 'C';            // default units
+
+// -----------------------------------------------------------------------------
+// Instantiate Parser for read messages from roaster
+// -----------------------------------------------------------------------------
+SkyRoasterParser roaster;
 
 // -----------------------------------------------------------------------------
 // Define PID variables
@@ -47,13 +52,14 @@ void setup() {
     #if SERIAL_DEBUG == 0
     pinMode(TX_PIN, OUTPUT);
     digitalWrite(TX_PIN, HIGH);
-    pinMode(RX_PIN, INPUT);
+    pinMode(RX_PIN, INPUT_PULLUP);
     #endif
 
+    // Start BLE
     initBLE();
-	
-    // interrupt that flags when roaster preamble is found
-    attachInterrupt(RX_PIN, watchRoasterStart, FALLING);
+
+    roaster.begin(RX_PIN);
+    roaster.enableDebug(false);
 
     // Set PID to start in MANUAL mode
     myPID.SetMode(MANUAL);
@@ -73,8 +79,17 @@ void loop() {
     // roaster shut down, clear our buffers   
     if (itsbeentoolong()) { shutdown(); }
 
-    // roaster message start found, go get it
-    if (roasterStartFound) { getRoasterMessage(); }
+    // roaster message found, go get it validate and update temp
+    if(roaster.available()) {
+        uint8_t msg[7];
+        roaster.getMessage(msg);
+
+        if(roaster.validate(msg)) {
+            temp = roaster.getTemperature(msg);
+        } else {
+            D_println("Checksum failed!");
+        }
+    }
 
     // send roaster commands if any
     sendRoasterMessage();

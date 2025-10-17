@@ -1,4 +1,8 @@
- /* Replaces Classic Bluetooth with BLE (NUS).
+// -----------------------------------------------------------------------------
+// All BLE related functions
+// -----------------------------------------------------------------------------
+
+/* Replaces Classic Bluetooth with BLE (NUS).
  * 
  * Service UUID:
  *     6e400001-b5a3-f393-e0a9-e50e24dcca9e
@@ -11,10 +15,7 @@
  * Sends notifications for temperature/status data.
  * Expects commands via the write characteristic.*/
 
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
+#include <NimBLEDevice.h>
 
 // -----------------------------------------------------------------------------
 // BLE UUIDs for Nordic UART Service
@@ -26,8 +27,9 @@
 // -----------------------------------------------------------------------------
 // BLE Globals
 // -----------------------------------------------------------------------------
-BLEServer* pServer = nullptr;
-BLECharacteristic* pTxCharacteristic = nullptr;
+NimBLEServer* pServer = nullptr;
+NimBLECharacteristic* pTxCharacteristic = nullptr;
+NimBLECharacteristic* pRxCharacteristic = nullptr;
 bool deviceConnected = false;
 extern String firmWareVersion;
 extern String sketchName;
@@ -41,43 +43,40 @@ void extern notifyBLEClient(const String& message);
 // -----------------------------------------------------------------------------
 // BLE Server Callbacks
 // -----------------------------------------------------------------------------
-class MyServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) override {
+class MyServerCallbacks : public NimBLEServerCallbacks {
+  void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override {
     deviceConnected = true;
 
     // Change BLE connection parameters per apple ble guidelines
     // (for this client, min interval 15ms (/1.25), max 30ms (/1.25), latency 4 frames, timeout 5sec(/10ms)
     // https://docs.silabs.com/bluetooth/4.0/bluetooth-miscellaneous-mobile/selecting-suitable-connection-parameters-for-apple-devices
-    pServer->updateConnParams(param->connect.remote_bda, 12, 24, 4, 500);
+    pServer->updateConnParams(connInfo.getConnHandle(), 12, 24, 4, 500);
    
     D_println("BLE: Client connected.");
   }
-  void onDisconnect(BLEServer* pServer) override {
+  void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
     deviceConnected = false;
     D_println("BLE: Client disconnected. Restarting advertising...");
     pServer->getAdvertising()->start();
   }
-};
+} serverCallbacks;
 
 // -----------------------------------------------------------------------------
 // BLE Characteristic Callbacks
 // -----------------------------------------------------------------------------
-class MyCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic* pCharacteristic) override {
-    String rxValue = String(pCharacteristic->getValue().c_str());
-
+class MyCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
+    String rxValue = pCharacteristic->getValue().c_str();
+    D_print("BLE Write Received: ");
+    D_println(rxValue);
     if (rxValue.length() > 0) {
-      String input = String(rxValue.c_str());
-      D_print("BLE Write Received: ");
-      D_println(input);
-      parseAndExecuteCommands(input);
+      parseAndExecuteCommands(rxValue);
     }
   }
-};
+} chrCallbacks;
 
 void notifyBLEClient(const String& message) {
     D_println("Attempting to notify BLE client with: " + message);
-
     if (deviceConnected && pTxCharacteristic) {
         pTxCharacteristic->setValue(message.c_str());
         pTxCharacteristic->notify();
@@ -88,46 +87,51 @@ void notifyBLEClient(const String& message) {
 }
 
 void extern initBLE() {
-    BLEDevice::init("ESP32_Skycommand_BLE");
-    BLEDevice::setMTU(185);
+    NimBLEDevice::init("ESP32_Skycommand_BLE");
 
-    pServer = BLEDevice::createServer();
-    pServer->setCallbacks(new MyServerCallbacks());
+    //create a ble server, attach its callbacks
+    pServer = NimBLEDevice::createServer();
+    pServer->setCallbacks(&serverCallbacks);
 
-    BLEService* pService = pServer->createService(SERVICE_UUID);
+    //create a ble service on that server
+    NimBLEService* pService = pServer->createService(SERVICE_UUID);
 
-    // Roaster notifes to HiBean
+    // Tx characteristic: Roaster notifes to HiBean
     pTxCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID_TX,
-        BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
+        NIMBLE_PROPERTY::NOTIFY | NIMBLE_PROPERTY::READ
     );
-    pTxCharacteristic->addDescriptor(new BLE2902());
 
-    // Hibean commands to Roaster
-    BLECharacteristic* pRxCharacteristic = pService->createCharacteristic(
+    // Rx Characteristic: Hibean commands to Roaster; notify required by Hibean, don't know why
+    pRxCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID_RX,
-        BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
+        NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR | NIMBLE_PROPERTY::NOTIFY
     );
-    pRxCharacteristic->setCallbacks(new MyCallbacks());
-    pRxCharacteristic->addDescriptor(new BLE2902());
+
+    //attach event handler callback for Rx
+    pRxCharacteristic->setCallbacks(&chrCallbacks);
+
+    //start the HIBean rx/tx service
     pService->start();
 
-    // esp32 information to HiBean for support/debug purposes
-    BLEService* devInfoService = pServer->createService("180A");
-    BLECharacteristic* boardCharacteristic = devInfoService->createCharacteristic("2A29", BLECharacteristic::PROPERTY_READ);
+    // Another service to send build information to HiBean for support purposes
+    NimBLEService* devInfoService = pServer->createService("180A");
+    NimBLECharacteristic* boardCharacteristic = devInfoService->createCharacteristic("2A29", NIMBLE_PROPERTY::READ);
       boardCharacteristic->setValue(boardID_BLE);
-      boardCharacteristic->addDescriptor(new BLE2902());
-    BLECharacteristic* sketchNameCharacteristic = devInfoService->createCharacteristic("2A28", BLECharacteristic::PROPERTY_READ);
+
+    NimBLECharacteristic* sketchNameCharacteristic = devInfoService->createCharacteristic("2A28", NIMBLE_PROPERTY::READ);
       sketchNameCharacteristic->setValue(sketchName);
-      sketchNameCharacteristic->addDescriptor(new BLE2902());
-    BLECharacteristic* firmwareCharacteristic = devInfoService->createCharacteristic("2A26", BLECharacteristic::PROPERTY_READ);
+
+    NimBLECharacteristic* firmwareCharacteristic = devInfoService->createCharacteristic("2A26", NIMBLE_PROPERTY::READ);
       firmwareCharacteristic->setValue(sketchName + " " + firmWareVersion);
-      firmwareCharacteristic->addDescriptor(new BLE2902());
     
     devInfoService->start();
 
-    BLEAdvertising* pAdvertising = pServer->getAdvertising();
+    //set up ble advertising of these services
+    NimBLEAdvertising* pAdvertising = pServer->getAdvertising();
+    pAdvertising->addServiceUUID(pService->getUUID());
+    pAdvertising->addServiceUUID(devInfoService->getUUID());
     pAdvertising->start();
     
-	  D_println("BLE Advertising started...");
+    D_println("BLE Advertising started...");
 }

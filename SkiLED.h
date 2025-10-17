@@ -14,6 +14,7 @@ void extern handleLED(void);
 
 // alternates blue-red on boot when no client connected
 // when client conncted just flashes blue
+// TODO: consider using variation of LED_COLOR_ORDER_RGB from esp32-hal-rgb-led.h
 void handleLED() {
   unsigned long t_now = millis();
   // flash led depending on state
