@@ -1,34 +1,56 @@
 // -----------------------------------------------------------------------------
 // LED handler
 // -----------------------------------------------------------------------------
-const extern unsigned int LED_BLUE[3] = { 0, 0, 10 };
-const extern unsigned int LED_RED[3] = { 0, 10, 0 };
-const extern unsigned int LED_GREEN[3] = { 10, 0, 0 };
-const extern unsigned int LED_BLACK[3] = { 0, 0, 0 };
 
-String currentLEDColor = "blue";
-unsigned long LED_LAST_ON_MS = 0;
-const unsigned long LED_FLASH_DELAY_MS = 1000;
+enum LedColor {
+  LED_BLUE,
+  LED_RED,
+  LED_GREEN,
+  LED_BLACK
+};
 
-void extern handleLED(void);
+unsigned long LED_LAST_ON_MS;
+unsigned long LED_FLASH_DELAY_MS = 1000;
+unsigned int currentLEDColor;
 
-// alternates blue-red on boot when no client connected
-// when client conncted just flashes blue
-// TODO: consider using variation of LED_COLOR_ORDER_RGB from esp32-hal-rgb-led.h
+void setLedColor(LedColor color) {
+  uint8_t r = 0, g = 0, b = 0;
+
+  #if RGB_BUILTIN_LED_COLOR_ORDER == LED_COLOR_ORDER_GRB
+  switch (color) {
+    case LED_BLUE:  r = 0;  g = 0;  b = 10; break;
+    case LED_RED:   r = 0; g = 10;  b = 0;  break;
+    case LED_GREEN: r = 10;  g = 0; b = 0;  break;
+    case LED_BLACK: r = 0;  g = 0;  b = 0;  break;
+  }
+  #else
+  switch (color) {
+    case LED_BLUE:  r = 0;  g = 0;  b = 10; break;
+    case LED_RED:   r = 10; g = 0;  b = 0;  break;
+    case LED_GREEN: r = 0;  g = 10; b = 0;  break;
+    case LED_BLACK: r = 0;  g = 0;  b = 0;  break;
+  }
+  #endif
+
+  rgbLedWrite(LED_PIN, r, g, b);
+}
+
 void handleLED() {
   unsigned long t_now = millis();
-  // flash led depending on state
-  if( (t_now - LED_LAST_ON_MS) >= LED_FLASH_DELAY_MS ) {
-    if(currentLEDColor == "blue" && deviceConnected) {
-      rgbLedWrite(LED_PIN, LED_BLACK[0], LED_BLACK[1], LED_BLACK[2]);
-      currentLEDColor = "black";
-    } else if (currentLEDColor == "blue") {
-      rgbLedWrite(LED_PIN, LED_RED[0], LED_RED[1], LED_RED[2]);
-      currentLEDColor = "red";
+
+  if ((t_now - LED_LAST_ON_MS) >= LED_FLASH_DELAY_MS) {
+    if (currentLEDColor == LED_BLUE && deviceConnected) {
+      setLedColor(LED_BLACK);
+      currentLEDColor = LED_BLACK;
+    } 
+    else if (currentLEDColor == LED_BLUE) {
+      setLedColor(LED_RED);
+      currentLEDColor = LED_RED;
       LED_LAST_ON_MS = t_now;
-    } else {
-      rgbLedWrite(LED_PIN, LED_BLUE[0], LED_BLUE[1], LED_BLUE[2]);
-      currentLEDColor = "blue";
+    } 
+    else {
+      setLedColor(LED_BLUE);
+      currentLEDColor = LED_BLUE;
       LED_LAST_ON_MS = t_now;
     }
   }

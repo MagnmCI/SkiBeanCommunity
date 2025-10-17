@@ -37,29 +37,27 @@ double pInput, pOutput;
 double pSetpoint = 0.0; // Desired temperature (adjustable on the fly)
 int pMode = P_ON_M; // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
 double Kp = 12.0, Ki = 0.5, Kd = 5.0; // pid calibrations for P_ON_M (adjustable on the fly)
-int pSampleTime = 1000; //ms (adjustable on the fly)
+int pSampleTime = 2000; //ms (adjustable on the fly)
 int manualHeatLevel = 50;
 PID myPID(&pInput, &pOutput, &pSetpoint, Kp, Ki, Kd, pMode, DIRECT);  //pid instance with our default values
 
 void setup() {
-    rgbLedWrite(LED_PIN, LED_GREEN[0], LED_GREEN[1], LED_GREEN[2]);
     Serial.begin(115200);
     D_println("Starting HiBean ESP32 BLE Roaster Control.");
     delay(3000); //let fw upload finish before we take over hwcdc serial tx/rx
 
     D_println("Serial SERIAL_DEBUG ON!");
-    
-    #if SERIAL_DEBUG == 0
+
+    // set pinmode on tx for commands to roaster, take it high
     pinMode(TX_PIN, OUTPUT);
     digitalWrite(TX_PIN, HIGH);
-    pinMode(RX_PIN, INPUT_PULLUP);
-    #endif
+
+    // start parser on rx pin for bean temp readings from roaster
+    roaster.begin(RX_PIN);
+    roaster.enableDebug(false);
 
     // Start BLE
     initBLE();
-
-    roaster.begin(RX_PIN);
-    roaster.enableDebug(false);
 
     // Set PID to start in MANUAL mode
     myPID.SetMode(MANUAL);
