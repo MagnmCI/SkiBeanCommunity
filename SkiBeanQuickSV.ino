@@ -16,7 +16,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.1.0");
+String firmWareVersion = String("1.1.1");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------

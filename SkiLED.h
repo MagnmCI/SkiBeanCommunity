@@ -16,6 +16,7 @@ unsigned int currentLEDColor;
 void setLedColor(LedColor color) {
   uint8_t r = 0, g = 0, b = 0;
 
+  // TODO: this macro does not work, figure out why
   #if RGB_BUILTIN_LED_COLOR_ORDER == LED_COLOR_ORDER_GRB
   switch (color) {
     case LED_BLUE:  r = 0;  g = 0;  b = 10; break;

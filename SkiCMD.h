@@ -92,7 +92,7 @@ void shutdown() {
 // Command handlers
 // -----------------------------------------------------------------------------
 void handleCHAN() {
-    String message = "# Active channels set to 2100\r\n";
+    String message = "# Active channels set to 2100\n";
     D_println(message);
     notifyBLEClient(message);
 }
@@ -109,7 +109,7 @@ void handleOT1(uint8_t value) {
 void handleREAD() {
     String readMsg = "0," + String(temp, 1) + "," + String(temp, 1) + "," +
           String(sendBuffer[HEAT_BYTE]) + "," +
-          String(sendBuffer[VENT_BYTE]) + "\r\n";
+          String(sendBuffer[VENT_BYTE]) + "\n";
     //D_print("READ Output: ");
     //D_println(readMsg);
 

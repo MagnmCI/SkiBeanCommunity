@@ -99,13 +99,13 @@ void extern initBLE() {
     // Tx characteristic: Roaster notifes to HiBean
     pTxCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID_TX,
-        NIMBLE_PROPERTY::NOTIFY | NIMBLE_PROPERTY::READ
+        NIMBLE_PROPERTY::NOTIFY
     );
 
-    // Rx Characteristic: Hibean commands to Roaster; notify required by Hibean, don't know why
+    // Rx Characteristic: Hibean commands to Roaster
     pRxCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID_RX,
-        NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR | NIMBLE_PROPERTY::NOTIFY
+        NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR
     );
 
     //attach event handler callback for Rx
