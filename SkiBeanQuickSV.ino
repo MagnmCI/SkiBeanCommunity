@@ -1,7 +1,8 @@
 /***************************************************
  * HiBean ESP32 BLE Roaster Control
  *
- * Libraries Required: PID 1.2.0, NimBLE-Arduino 2.3.6
+ * Libraries Required: PID 1.2.0
+ * ESP32 Board Defn Required: 3.2.1 MAX
  ***************************************************/
 
 #include <Arduino.h>
@@ -16,7 +17,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.1.1");
+String firmWareVersion = String("1.1.2");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------
