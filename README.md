@@ -14,7 +14,7 @@ The **PID_v1** library is used to regulate heating power based on the measured t
 | `PID;OFF`       | Disables PID control (switches to manual mode). |
 | `PID;SV;XXX`    | Sets the PID **setpoint temperature** (XXX is in °C, e.g., `PID;SV;250` sets the target to 250°C). |
 | `PID;T;PP.P;II.I;DD.D`   |  Apply provided tunings to the PID control (not persisted). |
-| `PID;CT;XXX`    | Temporarily sets PID cycle (sample) time to XXXms (not persisted). |
+| `PID;CT;XXXX`    | Temporarily sets PID cycle (sample) time to XXXX ms (not persisted). |
 | `PID;PM;E`      | Temporarily change pMode: E = P_ON_E to M = P_ON_M(default), or reverse (not persisted). |
 | `OT1;XX`        | Manually sets heater power to **XX%** (only works in MANUAL mode). |
 | `READ`          | Retrieves current temperature, set temperature, heater, and vent power. |

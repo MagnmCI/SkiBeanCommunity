@@ -1,9 +1,4 @@
  /* Replaces Classic Bluetooth with BLE (NUS).
- * 
- * IMPORTANT: As of Espressif's 3.3.0+ board package, NimBLE becomes
- * the default BLE stack and is NOT compatible with HiBean. Therefore
- * we have to stick with the legacy Bluedroid implementation and
- * you must compile against board package 3.2.1 or there will be problems.
  *
  * Service UUID:
  *     6e400001-b5a3-f393-e0a9-e50e24dcca9e
@@ -17,9 +12,6 @@
  * Expects commands via the write characteristic.*/
 
 #include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
 
 // -----------------------------------------------------------------------------
 // BLE UUIDs for Nordic UART Service
@@ -36,26 +28,19 @@ BLECharacteristic* pTxCharacteristic = nullptr;
 bool deviceConnected = false;
 extern String firmWareVersion;
 extern String sketchName;
-
-// -----------------------------------------------------------------------------
-// Forward Declarations
-// -----------------------------------------------------------------------------
-void extern parseAndExecuteCommands(String input);
-void extern notifyBLEClient(const String& message);
+extern String pendingCommand;
 
 // -----------------------------------------------------------------------------
 // BLE Server Callbacks
 // -----------------------------------------------------------------------------
 class MyServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) override {
-    // NimBLE: void onConnect(BLEServer* pServer, ble_gap_conn_desc *param) override {
+  void onConnect(BLEServer* pServer, ble_gap_conn_desc *param) override {
     deviceConnected = true;
 
     // Change BLE connection parameters per apple ble guidelines
     // (for this client, min interval 15ms (/1.25), max 30ms (/1.25), latency 4 frames, timeout 5sec(/10ms)
     // https://docs.silabs.com/bluetooth/4.0/bluetooth-miscellaneous-mobile/selecting-suitable-connection-parameters-for-apple-devices
-    pServer->updateConnParams(param->connect.remote_bda, 12, 24, 4, 500);
-    // NimBLE: pServer->updateConnParams(param->conn_handle, 12, 24, 4, 500);
+    pServer->updateConnParams(param->conn_handle, 12, 24, 4, 500);
    
     D_println("BLE: Client connected.");
   }
@@ -75,9 +60,8 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
     if (rxValue.length() > 0) {
       String input = String(rxValue.c_str());
-      D_print("BLE Write Received: ");
-      D_println(input);
-      parseAndExecuteCommands(input);
+      D_print("BLE Write Received: ");  D_println(input);
+      pendingCommand = rxValue;
     }
   }
 };
@@ -107,7 +91,6 @@ void extern initBLE() {
         CHARACTERISTIC_UUID_TX,
         BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
     );
-    pTxCharacteristic->addDescriptor(new BLE2902());
 
     // Hibean commands to Roaster
     BLECharacteristic* pRxCharacteristic = pService->createCharacteristic(
@@ -115,20 +98,16 @@ void extern initBLE() {
         BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
     );
     pRxCharacteristic->setCallbacks(new MyCallbacks());
-    pRxCharacteristic->addDescriptor(new BLE2902());
     pService->start();
 
     // esp32 information to HiBean for support/debug purposes
     BLEService* devInfoService = pServer->createService("180A");
     BLECharacteristic* boardCharacteristic = devInfoService->createCharacteristic("2A29", BLECharacteristic::PROPERTY_READ);
       boardCharacteristic->setValue(boardID_BLE);
-      boardCharacteristic->addDescriptor(new BLE2902());
     BLECharacteristic* sketchNameCharacteristic = devInfoService->createCharacteristic("2A28", BLECharacteristic::PROPERTY_READ);
       sketchNameCharacteristic->setValue(sketchName);
-      sketchNameCharacteristic->addDescriptor(new BLE2902());
     BLECharacteristic* firmwareCharacteristic = devInfoService->createCharacteristic("2A26", BLECharacteristic::PROPERTY_READ);
       firmwareCharacteristic->setValue(sketchName + " " + firmWareVersion);
-      firmwareCharacteristic->addDescriptor(new BLE2902());
     
     devInfoService->start();
 

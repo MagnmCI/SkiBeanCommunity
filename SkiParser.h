@@ -9,7 +9,7 @@ public:
     SkyRoasterParser() : debug(false) {}
 
     void begin(uint8_t pin);
-    bool available();
+    bool msgAvailable();
     void getMessage(uint8_t *dest);
     bool validate(const uint8_t *buf);
 
@@ -61,7 +61,7 @@ void SkyRoasterParser::begin(uint8_t pin) {
     attachInterrupt(digitalPinToInterrupt(pin), SkyRoasterParser::edgeISR, CHANGE);
 }
 
-bool SkyRoasterParser::available() {
+bool SkyRoasterParser::msgAvailable() {
     return newMessage;
 }
 

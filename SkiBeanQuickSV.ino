@@ -2,7 +2,6 @@
  * HiBean ESP32 BLE Roaster Control
  *
  * Libraries Required: PID 1.2.0
- * ESP32 Board Defn Required: 3.2.1 MAX
  ***************************************************/
 
 #include <Arduino.h>
@@ -17,7 +16,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.1.2");
+String firmWareVersion = String("1.1.3");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------
@@ -32,12 +31,17 @@ char CorF = 'C';            // default units
 SkyRoasterParser roaster;
 
 // -----------------------------------------------------------------------------
+// Track BLE writes from HiBean
+// -----------------------------------------------------------------------------
+String pendingCommand = "";   // Holds last command written by Hibean to us
+
+// -----------------------------------------------------------------------------
 // Define PID variables
 // -----------------------------------------------------------------------------
 double pInput, pOutput;
 double pSetpoint = 0.0; // Desired temperature (adjustable on the fly)
 int pMode = P_ON_M; // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
-double Kp = 12.0, Ki = 0.5, Kd = 5.0; // pid calibrations for P_ON_M (adjustable on the fly)
+double Kp = 10.0, Ki = 0.5, Kd = 1.0; // pid calibrations for P_ON_M (adjustable on the fly)
 int pSampleTime = 2000; //ms (adjustable on the fly)
 int manualHeatLevel = 50;
 PID myPID(&pInput, &pOutput, &pSetpoint, Kp, Ki, Kd, pMode, DIRECT);  //pid instance with our default values
@@ -78,8 +82,8 @@ void loop() {
     // roaster shut down, clear our buffers   
     if (itsbeentoolong()) { shutdown(); }
 
-    // roaster message found, go get it validate and update temp
-    if(roaster.available()) {
+    // roaster message found, go get it, validate and update temp
+    if(roaster.msgAvailable()) {
         uint8_t msg[7];
         roaster.getMessage(msg);
 
@@ -90,7 +94,13 @@ void loop() {
         }
     }
 
-    // send roaster commands if any
+    // process incoming ble commands from HiBean, could be read or write
+    if (pendingCommand) {
+        parseAndExecuteCommands(pendingCommand);  // process it
+        pendingCommand = "";  // consume the flag
+    }
+    
+    // send commands to roaster if any need to be sent
     sendRoasterMessage();
 
     // Ensure PID or manual heat control is handled
