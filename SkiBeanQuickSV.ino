@@ -16,7 +16,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.1.3");
+String firmWareVersion = String("1.1.4");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------
@@ -33,7 +33,7 @@ SkyRoasterParser roaster;
 // -----------------------------------------------------------------------------
 // Track BLE writes from HiBean
 // -----------------------------------------------------------------------------
-String pendingCommand = "";   // Holds last command written by Hibean to us
+std::queue<String> messageQueue;  // Holds commands written by Hibean to us
 
 // -----------------------------------------------------------------------------
 // Define PID variables
@@ -41,7 +41,7 @@ String pendingCommand = "";   // Holds last command written by Hibean to us
 double pInput, pOutput;
 double pSetpoint = 0.0; // Desired temperature (adjustable on the fly)
 int pMode = P_ON_M; // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
-double Kp = 10.0, Ki = 0.5, Kd = 1.0; // pid calibrations for P_ON_M (adjustable on the fly)
+double Kp = 10.0, Ki = 0.5, Kd = 2.0; // pid calibrations for P_ON_M (adjustable on the fly)
 int pSampleTime = 2000; //ms (adjustable on the fly)
 int manualHeatLevel = 50;
 PID myPID(&pInput, &pOutput, &pSetpoint, Kp, Ki, Kd, pMode, DIRECT);  //pid instance with our default values
@@ -95,13 +95,11 @@ void loop() {
     }
 
     // process incoming ble commands from HiBean, could be read or write
-    if (pendingCommand) {
-        parseAndExecuteCommands(pendingCommand);  // process it
-        pendingCommand = "";  // consume the flag
+    while (!messageQueue.empty()) {
+        String msg = messageQueue.front(); //grab the first one
+        messageQueue.pop(); //remove it from the queue
+        parseAndExecuteCommands(msg);  // process the command it
     }
-    
-    // send commands to roaster if any need to be sent
-    sendRoasterMessage();
 
     // Ensure PID or manual heat control is handled
     handlePIDControl();

@@ -68,6 +68,7 @@ void eStop();
 void handlePIDControl();
 void setPIDMode(bool usePID);
 void setValue(uint8_t* bytePtr, uint8_t value);
+void sendRoasterMessage();
 
 // -----------------------------------------------------------------------------
 // Utility Functions
@@ -114,6 +115,7 @@ void handleREAD() {
     //D_println(readMsg);
 
     notifyBLEClient(readMsg);
+    sendRoasterMessage(); // send heartbeat message to roaster
     lastEventTime = micros();
 }
 
@@ -121,6 +123,7 @@ void handleHEAT(uint8_t value) {
     if (value <= 100) {
         setValue(&sendBuffer[HEAT_BYTE], value);
     }
+    sendRoasterMessage();
     lastEventTime = micros();
 }
 
@@ -133,6 +136,7 @@ void handleVENT(uint8_t value) {
             handleFILTER((int) round(4-((value-1)*4/100))); //convert 0-100 to inverted 4-1
         }
     }
+    sendRoasterMessage();
     lastEventTime = micros();
 }
 
@@ -142,6 +146,7 @@ void handleDRUM(uint8_t value) {
     } else {
         setValue(&sendBuffer[DRUM_BYTE], 0);
     }
+    sendRoasterMessage();
     lastEventTime = micros();
 }
 
@@ -149,6 +154,7 @@ void handleFILTER(uint8_t value) {
     if (value >= 0 && value <= 4 ) {
         setValue(&sendBuffer[FILTER_BYTE], value); //0 off; 1 fastest -> 4 slowest
     }
+    sendRoasterMessage();
     lastEventTime = micros();
 }
 
@@ -157,6 +163,7 @@ void handleCOOL(uint8_t value) {
         setValue(&sendBuffer[COOL_BYTE], value);
         handleFILTER(value);
     }
+    sendRoasterMessage();
     lastEventTime = micros();
 }
 

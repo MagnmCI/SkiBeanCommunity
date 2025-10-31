@@ -12,6 +12,8 @@
  * Expects commands via the write characteristic.*/
 
 #include <BLEDevice.h>
+#include <queue>    // for std::queue
+#include <string>   // for std::string
 
 // -----------------------------------------------------------------------------
 // BLE UUIDs for Nordic UART Service
@@ -28,7 +30,7 @@ BLECharacteristic* pTxCharacteristic = nullptr;
 bool deviceConnected = false;
 extern String firmWareVersion;
 extern String sketchName;
-extern String pendingCommand;
+extern std::queue<String> messageQueue;
 
 // -----------------------------------------------------------------------------
 // BLE Server Callbacks
@@ -57,12 +59,12 @@ class MyServerCallbacks : public BLEServerCallbacks {
 class MyCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* pCharacteristic) override {
     String rxValue = String(pCharacteristic->getValue().c_str());
+    rxValue.remove(rxValue.lastIndexOf("\n")); //remove trailing newlines
 
     if (rxValue.length() > 0) {
       String input = String(rxValue.c_str());
       D_print("BLE Write Received: ");  D_println(input);
-      pendingCommand = rxValue;
-    }
+      messageQueue.push(rxValue);    }
   }
 };
 
