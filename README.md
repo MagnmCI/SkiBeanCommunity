@@ -1,8 +1,28 @@
-# PID Commands - HiBean ESP32 BLE Roaster Control
+# HiBean ESP32 BLE Roaster Control for Skywalker v1
 
-This document lists the available commands for controlling the roaster using PID_v1 in the HiBean ESP32 BLE Roaster Control firmware.
+This code implements an Arduino based roaster controller for ESP32 series boards, tested with Waveshare ESP32-S3-Zero and Espressif ESP32C6-devkitC both connected to a Skywalker v1 roaster.  This is NOT for v2 Skywalker.
+
+Originally this code base was a spike to implement PID control on an older codebase (thus the name "QuickSV"), but it evolved into a refactor of the entire Skywalker v1 esp32 codebase and that code is what is shown here.
+
+Notable changes of this build (1.1.4) over prior builds...
+
+* Espressif ESP32 moved away from Bluedroid (a full bluetooth stack) to NimBLE (a BLE only stack) which required quite a bit of work to ensure solid BLE performance. (see build notes below)
+* An improved and object'y roaster-read interface for reliable, fast and non-blocking temperature reads from the stock roaster temperature probe without the need for additional signal filtering.
+* CMD inbound-message queueing which enables HiBean automations to send mulitple, rapid commands and not get lost by the ESP32.
+* PID tuning to be less nervous.
+
+## Build Notes
+When setting up your IDE, be sure you have the EXACT board selected, and if not, install it via Boards Manager.  "ESP32 Family" is not sufficient.  There are very specific pin definitions which are unique to each board.
+
+When installing the espressif ESP32 library, the BLE improvements require the most recent esp32-arduino core as there are fixes in there specifically to support Bluedroid->NimBLE migration.  At this time, those changes are expected to be in the 3.4.0 release of the esp32-arduino core, so that or newer should work.
+
+When building this sketch, you will need to have PID_V1 library installed in your dev envionment.
+
+If you have problems, please open a git issue and it will be looked at as soon as is convenient.  This is a volunteer effort so operators are not standing by.
 
 ## **PID Commands & Behavior**
+These commands are generally documented here to ensure HiBean/Artisan compatibility of the esp32 code.  You can issue these commands manually from within HiBean if you enable the developer terminal and you can send the below commands by hand - mostly useful for small experiments or troubleshooting.
+
 The **PID_v1** library is used to regulate heating power based on the measured temperature. It operates in **two modes**:
 - **Automatic (PID ON):** Uses PID logic to adjust the heater output.
 - **Manual (PID OFF):** Allows manual control of heater power.
@@ -48,12 +68,3 @@ The **PID_v1** library is used to regulate heating power based on the measured t
   ```
   READ
   ```
-
-This document serves as a quick reference for controlling the roaster over BLE using the HiBean ESP32 BLE Roaster Control firmware.
-
-TODO
-- PID storage via Preference
-- sTune Autotune Function
-- RTD Max31865 Implementation
-- TC Max31855 Implementation
-- AutoDrop Servo
