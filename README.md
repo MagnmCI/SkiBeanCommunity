@@ -14,7 +14,7 @@ Notable changes of this build (1.1.4) over prior builds...
 ## Build Notes
 When setting up your IDE, be sure you have the EXACT board selected, and if not, install it via Boards Manager.  "ESP32 Family" is not sufficient.  There are very specific pin definitions which are unique to each board.
 
-When installing the espressif ESP32 library, the BLE improvements require the most recent esp32-arduino core as there are fixes in there specifically to support Bluedroid->NimBLE migration.  At this time, those changes are expected to be in the 3.4.0 release of the esp32-arduino core, so that or newer should work.
+When installing the espressif ESP32 library, the BLE improvements require the most recent esp32-arduino core as there are fixes in there specifically to support Bluedroid->NimBLE migration.  Those changes are in the 3.3.3 release of the esp32-arduino core, so that or newer should work.
 
 When building this sketch, you will need to have PID_V1 library installed in your dev envionment.
 
