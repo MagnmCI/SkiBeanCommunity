@@ -4,17 +4,20 @@ This code implements an Arduino based roaster controller for ESP32 series boards
 
 Originally this code base was a spike to implement PID control on an older codebase (thus the name "QuickSV"), but it evolved into a refactor of the entire Skywalker v1 esp32 codebase and that code is what is shown here.
 
-Notable changes of this build (1.1.4) over prior builds...
+Notable changes of this build (starting at v1.1.4) over prior builds...
 
 * Espressif ESP32 moved away from Bluedroid (a full bluetooth stack) to NimBLE (a BLE only stack) which required quite a bit of work to ensure solid BLE performance. (see build notes below)
 * An improved and object'y roaster-read interface for reliable, fast and non-blocking temperature reads from the stock roaster temperature probe without the need for additional signal filtering.
 * CMD inbound-message queueing which enables HiBean automations to send mulitple, rapid commands and not get lost by the ESP32.
-* PID tuning to be less nervous.
+* Continued PID tuning.
+
+## Available binaries (.bin)
+For those who don't want to just flash and go, I have started including a merged .bin with each release for a Waveshare ESP32-S3-Zero.  Use this .bin with your favorite esp32 flash tool (ie. https://web.esphome.io/), and go.  After the flash, the on-board LED should alternate red/blue until it pairs with a BLE client such as Hibean.  If you need to re-flash an existing S3-Zero, hold down the BOOT button as you unplug and re-plug the device into USB - that will bring it up in DFU mode wherein it's ready to take a new flash.
 
 ## Build Notes
-When setting up your IDE, be sure you have the EXACT board selected, and if not, install it via Boards Manager.  "ESP32 Family" is not sufficient.  There are very specific pin definitions which are unique to each board.
+When setting up your IDE, be sure you have the EXACT board selected, and if not, install it via Boards Manager.  "ESP32 Family" is not sufficient.  There are very specific pin and board definitions which are unique to each board.  If you use a family board, the code may in fact complie, but then not work with the roaster. Don't be fooled.
 
-When installing the espressif ESP32 library, the BLE improvements require the most recent esp32-arduino core as there are fixes in there specifically to support Bluedroid->NimBLE migration.  Those changes are in the 3.3.3 release of the esp32-arduino core, so that or newer should work.
+When installing the espressif ESP32 library (which is necessary in Arduino IDE), the BLE improvements require the most recent esp32-arduino core as there are fixes in there specifically to support Bluedroid->NimBLE migration.  Those changes are in the 3.3.3 release of the esp32-arduino core, so that or newer should work.
 
 When building this sketch, you will need to have PID_V1 library installed in your dev envionment.
 
@@ -36,7 +39,7 @@ The **PID_v1** library is used to regulate heating power based on the measured t
 | `PID;T;PP.P;II.I;DD.D`   |  Apply provided tunings to the PID control (not persisted). |
 | `PID;CT;XXXX`    | Temporarily sets PID cycle (sample) time to XXXX ms (not persisted). |
 | `PID;PM;E`      | Temporarily change pMode: E = P_ON_E to M = P_ON_M(default), or reverse (not persisted). |
-| `OT1;XX`        | Manually sets heater power to **XX%** (only works in MANUAL mode). |
+| `OT1;XX`        | Manually sets heater power to **XX%** when PID is off; sets the MAX heat power level when PID is on. |
 | `READ`          | Retrieves current temperature, set temperature, heater, and vent power. |
 
 ## **Other Control Commands**
@@ -60,7 +63,7 @@ The **PID_v1** library is used to regulate heating power based on the measured t
   ```
   PID;SV;250
   ```
-- Manually set heater to 70% power:
+- Manually set heater to 70% power, or PID max power limit (see OT1 above):
   ```
   OT1;70
   ```
