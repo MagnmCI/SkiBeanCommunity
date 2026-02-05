@@ -1,22 +1,21 @@
 /***************************************************
  * HiBean ESP32 BLE Roaster Control
- *
- * Libraries Required: PID 1.2.0
  ***************************************************/
 
 #include <Arduino.h>
 #include <PID_v1.h>
-#include "SkiPinDefns.h"
-#include "SerialDebug.h"
-#include "SkiBLE.h"
-#include "SkiLED.h"
-#include "SkiCMD.h"
-#include "SkiParser.h"
+#include "../lib/SkiPinDefns.h"
+#include "../lib/SerialDebug.h"
+#include "../lib/SkiBLE.h"
+#include "../lib/SkiLED.h"
+#include "../lib/SkiCMD.h"
+#include "../lib/SkiPIDConfig.h"
+#include "../lib/SkiParser.h"
 
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-String firmWareVersion = String("1.1.7");
+String firmWareVersion = String("1.2.0");
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
 // -----------------------------------------------------------------------------
@@ -36,15 +35,16 @@ SkyRoasterParser roaster;
 std::queue<String> messageQueue;  // Holds commands written by Hibean to us
 
 // -----------------------------------------------------------------------------
-// Define PID variables
+// Setup PID and Config interface
 // -----------------------------------------------------------------------------
 double pInput, pOutput;
 double pSetpoint = 0.0; // Desired temperature (adjustable on the fly)
-int pMode = P_ON_M; // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
-double Kp = 9.5, Ki = 0.3, Kd = 3.0; // pid calibrations for pMode (adjustable on the fly)
-int pSampleTime = 500; //ms (adjustable on the fly)
 int manualHeatLevel = 50;
-PID myPID(&pInput, &pOutput, &pSetpoint, Kp, Ki, Kd, pMode, DIRECT);  //pid instance with our default values
+
+PIDConfig myPIDConfig;
+PID myPID(&pInput, &pOutput, &pSetpoint,
+        myPIDConfig.getKp(), myPIDConfig.getKi(), myPIDConfig.getKd(),
+        myPIDConfig.getPMode(), DIRECT);  //pid instance with our default values
 
 void setup() {
     Serial.begin(115200);
@@ -68,8 +68,8 @@ void setup() {
     myPID.SetMode(MANUAL);
 
     // clamp output limits to 0-100(% heat), set sample interval 
-    myPID.SetOutputLimits(0.0,100.0);
-    myPID.SetSampleTime(pSampleTime);
+    myPID.SetOutputLimits(0.0,myPIDConfig.getMaxPower());
+    myPID.SetSampleTime(myPIDConfig.getSampleTime());
 
     // Ensure heat starts at 0% for safety
     manualHeatLevel = 0;

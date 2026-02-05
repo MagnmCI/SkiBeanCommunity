@@ -16,24 +16,19 @@ unsigned int currentLEDColor;
 void setLedColor(LedColor color) {
   uint8_t r = 0, g = 0, b = 0;
 
-  // TODO: this macro does not work, figure out why
-  #if RGB_BUILTIN_LED_COLOR_ORDER == LED_COLOR_ORDER_GRB
-  switch (color) {
-    case LED_BLUE:  r = 0;  g = 0;  b = 10; break;
-    case LED_RED:   r = 0; g = 10;  b = 0;  break;
-    case LED_GREEN: r = 10;  g = 0; b = 0;  break;
-    case LED_BLACK: r = 0;  g = 0;  b = 0;  break;
-  }
-  #else
   switch (color) {
     case LED_BLUE:  r = 0;  g = 0;  b = 10; break;
     case LED_RED:   r = 10; g = 0;  b = 0;  break;
     case LED_GREEN: r = 0;  g = 10; b = 0;  break;
     case LED_BLACK: r = 0;  g = 0;  b = 0;  break;
   }
-  #endif
 
-  rgbLedWrite(LED_PIN, r, g, b);
+  if (RGB_BUILTIN_LED_COLOR_ORDER == LED_COLOR_ORDER_GRB) {
+    rgbLedWrite(LED_PIN, g, r, b);
+  } else {
+    rgbLedWrite(LED_PIN, r, g, b);
+  }
+  
 }
 
 void handleLED() {

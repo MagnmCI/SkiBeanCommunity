@@ -1,3 +1,4 @@
+#include "PID_v1.h"
 // -----------------------------------------------------------------------------
 // All HiBean commands TO roaster
 // -----------------------------------------------------------------------------
@@ -8,9 +9,9 @@
 extern double temp;
 extern char CorF;
 extern PID myPID;
+extern PIDConfig myPIDConfig;
 extern double pInput, pOutput, pSetpoint;
-extern double Kp, Ki, Kd;
-extern int pMode, pSampleTime, manualHeatLevel;
+extern int manualHeatLevel;
 
 // -----------------------------------------------------------------------------
 // Timing Constants
@@ -95,7 +96,7 @@ void shutdown() {
 void handleCHAN() {
     String message = "# Active channels set to 2100\n";
     D_println(message);
-    notifyBLEClient(message);
+    notifyNimBLEClient(message);
 }
 
 void handleOT1(uint8_t value) {
@@ -103,7 +104,8 @@ void handleOT1(uint8_t value) {
       manualHeatLevel = constrain(value, 0, 100); // Set manual heat level
       handleHEAT(manualHeatLevel); // Apply the new setting
     } else if (myPID.GetMode() == AUTOMATIC) {
-      myPID.SetOutputLimits(0.0,constrain(value, 0, 100));
+      myPIDConfig.setMaxPower(constrain(value, 0, 100));
+      myPIDConfig.apply(myPID);
     }
 }
 
@@ -114,7 +116,7 @@ void handleREAD() {
     //D_print("READ Output: ");
     //D_println(readMsg);
 
-    notifyBLEClient(readMsg);
+    notifyNimBLEClient(readMsg);
     sendRoasterMessage(); // send heartbeat message to roaster
     lastEventTime = micros();
 }
@@ -249,26 +251,25 @@ void parseAndExecuteCommands(String input) {
                     param = param.substring(index+1); //trim string
                 }
             }
-            Kp = pidTune[0];
-            Ki = pidTune[1];
-            Kd = pidTune[2];
-            
-            D_print("Kp: "); D_println(Kp); D_print("Ki: "); D_println(Ki); D_print("Kd: "); D_println(Kd);
-            myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
+            myPIDConfig.setKp(pidTune[0]);
+            myPIDConfig.setKi(pidTune[1]);
+            myPIDConfig.setKd(pidTune[2]);
+            myPIDConfig.apply(myPID); // apply the pid params to running config
         } else if (subcommand == "PM") {
             D_print("Setting PMode to: ");
             D_println(param);
             if (param == "M") {
-              pMode = P_ON_M;
-              myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
+              myPIDConfig.setPMode(P_ON_M);
+              myPIDConfig.apply(myPID); // apply the pid params to running config
             } else {
-              pMode = P_ON_E;
-              myPID.SetTunings(Kp, Ki, Kd, pMode); // apply the pid params to running config
+              myPIDConfig.setPMode(P_ON_E);
+              myPIDConfig.apply(myPID); // apply the pid params to running config
             }
         } else if (subcommand == "CT") {
             D_print("Setting Cycle Time to: ");
-            D_println(param.toDouble());
-            myPID.SetSampleTime(pSampleTime);
+            D_println(param.toInt());
+            myPIDConfig.setSampleTime(param.toInt());
+            myPIDConfig.apply(myPID);
         }
     } else if (command == "OT1") {  
         D_println("Setting OT1: " + param);
