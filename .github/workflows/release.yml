@@ -21,6 +21,18 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Install pioarduino platform
+        run: |
+          pio pkg install \
+            --global \
+            --platform "https://github.com/pioarduino/platform-espressif32.git"
+
+      - name: PlatformIO system info
+        run: pio system info
+
+      - name: Build firmware
+        run: pio run
+
       - name: Build firmware
         run: pio run
 
