@@ -1,5 +1,8 @@
 name: Build and Release Firmware
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -30,8 +33,11 @@ jobs:
       - name: PlatformIO system info
         run: pio system info
 
-      - name: Build firmware
-        run: pio run
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
 
       - name: Build firmware
         run: pio run
@@ -40,6 +46,11 @@ jobs:
         run: |
           mkdir release
           find .pio/build -name "*.bin" -exec cp {} release/ \;
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
