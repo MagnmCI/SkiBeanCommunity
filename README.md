@@ -71,3 +71,7 @@ The **PID_v1** library is used to regulate heating power based on the measured t
   ```
   READ
   ```
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPLv3).
