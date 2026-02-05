@@ -1,48 +1,31 @@
 # HiBean ESP32 BLE Roaster Control for Skywalker v1
 
-This code implements an Arduino based roaster controller for ESP32 series boards, tested with Waveshare ESP32-S3-Zero and Espressif ESP32C6-devkitC both connected to a Skywalker v1 roaster.  This is NOT for v2 Skywalker.
+This code implements the Community Edition (Skywalker Comm) roaster controller for ESP32 series boards, and has been tested with Waveshare ESP32-S3-Zero and Espressif ESP32C6-devkitC, both connected to a Skywalker v1 roaster.  This is NOT for v2 Skywalker.
 
-Originally this code base was a spike to implement PID control on an older codebase (thus the name "QuickSV"), but it evolved into a refactor of the entire Skywalker v1 esp32 codebase and that code is what is shown here.
+First off, a hat-tip to jmoore52, mrnoone5313 and Nirecue and their great work at [Skywalker Roaster Labs](https://github.com/jmoore52/SkywalkerRoaster).  It is their early work that inspried this version.
 
-Notable changes of this build (starting at v1.1.4) over prior builds...
-
-* Espressif ESP32 moved away from Bluedroid (a full bluetooth stack) to NimBLE (a BLE only stack) which required quite a bit of work to ensure solid BLE performance. (see build notes below)
-* An improved and object'y roaster-read interface for reliable, fast and non-blocking temperature reads from the stock roaster temperature probe without the need for additional signal filtering.
-* CMD inbound-message queueing which enables HiBean automations to send mulitple, rapid commands and not get lost by the ESP32.
-* Continued PID tuning.
+The [HiBean](https://www.hibean.fun/en/) roasting team generously provides support for a "Community" version of the SkyWalker roaster controller, which is implemented in Arduino on esp32.  This community version is open-source (GPLv3) and is freely available to fork and modify, or to use the pre-compiled binary versions which are provided with each [release](https://github.com/MagnmCI/SkiBeanCommunity/releases).
 
 ## Available binaries (.bin)
-For those who don't want to just flash and go, I have started including a merged .bin with each release for a Waveshare ESP32-S3-Zero.  Use this .bin with your favorite esp32 flash tool (ie. https://web.esphome.io/), and go.  After the flash, the on-board LED should alternate red/blue until it pairs with a BLE client such as Hibean.  If you need to re-flash an existing S3-Zero, hold down the BOOT button as you unplug and re-plug the device into USB - that will bring it up in DFU mode wherein it's ready to take a new flash.
+With every milestone featureset that's felt to be release-worthy, a release is generated and pre-compiled binaries are automatically generated for the supported esp32 platforms.
 
-## Build Notes
-When setting up your IDE, be sure you have the EXACT board selected, and if not, install it via Boards Manager.  "ESP32 Family" is not sufficient.  There are very specific pin and board definitions which are unique to each board.  If you use a family board, the code may in fact complie, but then not work with the roaster. Don't be fooled.
+Use these .bin's with your favorite esp32 flash tool (ie. https://web.esphome.io/), and go.  After the flash, the on-board LED should alternate red/blue until it pairs with a BLE client such as Hibean.  If you need to re-flash an existing S3-Zero, hold down the BOOT button as you unplug and re-plug the device into USB - that will bring it up in DFU mode wherein it's ready to take a new flash.
 
-When installing the espressif ESP32 library (which is necessary in Arduino IDE), the BLE improvements require the most recent esp32-arduino core as there are fixes in there specifically to support Bluedroid->NimBLE migration.  Those changes are in the 3.3.3 release of the esp32-arduino core, so that or newer should work.
+## IDE / Build Notes
+This repository enables development with PlatformIO-style IDE extensions to VSCode. However, you must specifically utilize the ['pioarduino'](https://github.com/pioarduino) fork of PlatformIO since it has the most current board definitions for Arduino based development.
 
-When building this sketch, you will need to have PID_V1 library installed in your dev envionment.
+To set up your development environment, install VSCode and the pioarduino extension, and checkout this repo to a local directory.
 
-If you have problems, please open a git issue and it will be looked at as soon as is convenient.  This is a volunteer effort so operators are not standing by.
+Within pioarduino, "Open" an existing project and select the 'platform.ini' file included in this repo, and the rest of the development enviornment and required libs and toolchains will automatically be installed and configured - you're ready to build and flash.
 
-## **PID Commands & Behavior**
-These commands are generally documented here to ensure HiBean/Artisan compatibility of the esp32 code.  You can issue these commands manually from within HiBean if you enable the developer terminal and you can send the below commands by hand - mostly useful for small experiments or troubleshooting.
+## **Control Commands & Behavior**
+HiBean and this roaster control software loosely implement [TC4 commands](https://github.com/greencardigan/TC4-shield/blob/master/applications/Artisan/aArtisan/trunk/src/aArtisan/commands.txt) for the majority of roaster functions, and are enumerated below.
 
-The **PID_v1** library is used to regulate heating power based on the measured temperature. It operates in **two modes**:
-- **Automatic (PID ON):** Uses PID logic to adjust the heater output.
-- **Manual (PID OFF):** Allows manual control of heater power.
 
 ## **Available Commands (case-INsensitive)**
-| **Command**     | **Description** |
-|-----------------|----------------|
-| `PID;ON`        | Enables PID control (automatic mode). |
-| `PID;OFF`       | Disables PID control (switches to manual mode). |
-| `PID;SV;XXX`    | Sets the PID **setpoint temperature** (XXX is in °C, e.g., `PID;SV;250` sets the target to 250°C). |
-| `PID;T;PP.P;II.I;DD.D`   |  Apply provided tunings to the PID control (not persisted). |
-| `PID;CT;XXXX`    | Temporarily sets PID cycle (sample) time to XXXX ms (not persisted). |
-| `PID;PM;E`      | Temporarily change pMode: E = P_ON_E to M = P_ON_M(default), or reverse (not persisted). |
-| `OT1;XX`        | Manually sets heater power to **XX%** when PID is off; sets the MAX heat power level when PID is on. |
-| `READ`          | Retrieves current temperature, set temperature, heater, and vent power. |
 
-## **Other Control Commands**
+
+### **Utility Commands**
 | **Command**     | **Description** |
 |-----------------|----------------|
 | `OT2;XX`        | Sets the vent power to **XX%**. |
@@ -53,6 +36,18 @@ The **PID_v1** library is used to regulate heating power based on the measured t
 | `COOL;XX`       | Activates cooling function (0-100%). |
 | `CHAN`          | Sends active channel configuration. |
 | `UNITS;C/F`     | Sets temperature units to **Celsius (C)** or **Fahrenheit (F)**. |
+
+### **PID Control Commands**
+| **Command**     | **Description** |
+|-----------------|----------------|
+| `PID;ON`        | Enables PID control (automatic mode). |
+| `PID;OFF`       | Disables PID control (switches to manual mode). |
+| `PID;SV;XXX`    | Sets the PID **setpoint temperature** (XXX is in °C, e.g., `PID;SV;250` sets the target to 250°C). |
+| `PID;T;PP.P;II.I;DD.D`   |  Apply provided tunings to the PID control (not persisted). |
+| `PID;CT;XXXX`    | Temporarily sets PID cycle (sample) time to XXXX ms (not persisted). |
+| `PID;PM;E`      | Temporarily change pMode: E = P_ON_E to M = P_ON_M(default), or reverse (not persisted). |
+| `OT1;XX`        | Manually sets heater power to **XX%** when PID is off; sets the MAX heat power level when PID is on. |
+| `READ`          | Retrieves current temperature, set temperature, heater, and vent power. |
 
 ## **Usage Example**
 - Enable PID control:
@@ -71,6 +66,10 @@ The **PID_v1** library is used to regulate heating power based on the measured t
   ```
   READ
   ```
+Note that this release and those going forward expose PID controls via BLE and the details of which can be seen in the SkiBLE header file.  This change was primarly because TC4 doesn't support a complete set of PID commands, and there is no option to read current state over TC4, only write.
+
+## Volunteer Efforts
+This codebase is a volunteer effort, so please understand that you are on your own with this software.  You can log issues against this codebase and the developer may address them as they have time.
 
 ## License
 
