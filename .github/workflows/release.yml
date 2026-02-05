@@ -45,7 +45,8 @@ jobs:
       - name: Collect artifacts
         run: |
           mkdir release
-          find .pio/build -name "*.bin" -exec cp {} release/ \;
+          find .pio/build -name "firmware.bin" \
+            -exec sh -c 'cp "$1" "release/$(basename $(dirname $1)).bin"' _ {} \;
 
       - name: Generate checksums
         run: |
