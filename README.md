@@ -2,14 +2,14 @@
 
 This code implements the Community Edition (Skywalker Comm) roaster controller for ESP32 series boards, and has been tested with Waveshare ESP32-S3-Zero and Espressif ESP32C6-devkitC, both connected to a Skywalker v1 roaster.  This is NOT for v2 Skywalker.
 
-First off, a hat-tip to jmoore52, mrnoone5313 and Nirecue and their great work at [Skywalker Roaster Labs](https://github.com/jmoore52/SkywalkerRoaster).  It is their early work that inspried this version.
-
 The [HiBean](https://www.hibean.fun/en/) roasting team generously provides support for a "Community" version of the SkyWalker roaster controller, which is implemented in Arduino on esp32.  This community version is open-source (GPLv3) and is freely available to fork and modify, or to use the pre-compiled binary versions which are provided with each [release](https://github.com/MagnmCI/SkiBeanCommunity/releases).
+
+Hat-tip to jmoore52, mrnoone5313 and Nirecue and their great work at [Skywalker Roaster Labs](https://github.com/jmoore52/SkywalkerRoaster).  It is their work that inspried this version.  If you want to get involved, join the [HiBean discord server](https://discord.gg/pEM8MkY9).
 
 ## Available binaries (.bin)
 With every milestone featureset that's felt to be release-worthy, a release is generated and pre-compiled binaries are automatically generated for the supported esp32 platforms.
 
-Use these .bin's with your favorite esp32 flash tool (ie. https://web.esphome.io/), and go.  After the flash, the on-board LED should alternate red/blue until it pairs with a BLE client such as Hibean.  If you need to re-flash an existing S3-Zero, hold down the BOOT button as you unplug and re-plug the device into USB - that will bring it up in DFU mode wherein it's ready to take a new flash.
+Use these .bin's with your favorite [esp32 flash tool](https://web.esphome.io/), and go.  After the flash, the on-board LED should alternate red/blue until it pairs with a BLE client such as Hibean.  If you need to re-flash an existing S3-Zero, hold down the BOOT button as you unplug and re-plug the device into USB - that will bring it up in DFU mode wherein it's ready to take a new flash.
 
 ## IDE / Build Notes
 This repository enables development with PlatformIO-style IDE extensions to VSCode. However, you must specifically utilize the ['pioarduino'](https://github.com/pioarduino) fork of PlatformIO since it has the most current board definitions for Arduino based development.

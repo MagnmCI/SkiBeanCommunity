@@ -71,11 +71,11 @@ class MyServerCallbacks : public NimBLEServerCallbacks {
     // https://docs.silabs.com/bluetooth/4.0/bluetooth-miscellaneous-mobile/selecting-suitaNimBLE-connection-parameters-for-apple-devices
     pServer->updateConnParams(connInfo.getConnHandle(), 12, 24, 4, 500);
    
-    D_println("NimBLE: Client connected.");
+    D_println("BLE: Client connected.");
   }
   void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
     deviceConnected = false;
-    D_println("NimBLE: Client disconnected. Restarting advertising...");
+    D_println("BLE: Client disconnected. Restarting advertising...");
     pServer->getAdvertising()->start();
   }
 };
@@ -90,7 +90,7 @@ class RoasterCallbacks : public NimBLECharacteristicCallbacks {
 
     if (rxValue.length() > 0) {
       String input = String(rxValue.c_str());
-      D_print("NimBLE Write Received: ");  D_println(input);
+      D_print("BLE Write Received: ");  D_println(input);
       messageQueue.push(rxValue);    }
   }
 };
@@ -174,12 +174,13 @@ void notifyNimBLEClient(const String& message) {
         pTxCharacteristic->notify();
        D_println("Notification sent successfully.");
     } else {
-      D_println("Notification failed. Device not connected or TX characteristic unavailaNimBLE.");
+      D_println("Notification failed. Device not connected or TX characteristic unavailable.");
     }
 }
 
 void extern initBLE() {
-    NimBLEDevice::init("ESP32_Skycommand_NimBLE");
+    char* NimBLEDeviceName = "ESP32_Skycommand_BLE";
+    NimBLEDevice::init(NimBLEDeviceName);
 
     pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
@@ -247,7 +248,8 @@ void extern initBLE() {
     devInfoService->start();
 
     NimBLEAdvertising* pAdvertising = pServer->getAdvertising();
+    pAdvertising->setName(NimBLEDeviceName);
     pAdvertising->start();
     
-	  D_println("NimBLE Advertising started...");
+	  D_println("BLE Advertising started...");
 }
