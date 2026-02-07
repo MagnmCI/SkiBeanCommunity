@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir -p release
 
-          for env in .pio/build/*; do
+          for env in .pio/build/*/; do
             name=$(basename "$env")
 
             MCU=$(pio run -e "$name" -t envdump | grep 'BOARD_MCU' | cut -d"'" -f4)
