@@ -61,10 +61,10 @@ jobs:
             echo "Packages dir: $PLATFORMIO_PACKAGES_DIR"
 
             esptool --chip $MCU merge-bin \
-              --output "release/${name}.bin" \
               --flash-mode dio \
               --flash-freq 80m \
               --flash-size 4MB \
+              --output "release/${name}.bin" \
               0x0000  "$env/bootloader.bin" \
               0x8000  "$env/partitions.bin" \
               0xe000  "${PLATFORMIO_PACKAGES_DIR}/boot_app0.bin" \
