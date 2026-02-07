@@ -179,7 +179,7 @@ void notifyNimBLEClient(const String& message) {
 }
 
 void extern initBLE() {
-    char* NimBLEDeviceName = "ESP32_Skycommand_BLE";
+    std::string NimBLEDeviceName = "ESP32_Skycommand_BLE";
     NimBLEDevice::init(NimBLEDeviceName);
 
     pServer = NimBLEDevice::createServer();

@@ -168,7 +168,7 @@ void handleDRUM(uint8_t value) {
 }
 
 void handleFILTER(uint8_t value) {
-    if (value >= 0 && value <= 4 ) {
+    if (value <= 4 ) {
         setValue(&sendBuffer[FILTER_BYTE], value); //0 off; 1 fastest -> 4 slowest
     }
     sendRoasterMessage();

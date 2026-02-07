@@ -30,7 +30,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-#define FW_VERSION "v1.2.0"
+#define FW_VERSION "v1.2.1"
 String firmWareVersion = String(FW_VERSION);
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
