@@ -54,7 +54,7 @@ jobs:
 
             MCU=$(pio run -e "$name" -t envdump | grep '^BOARD_MCU=' | cut -d= -f2)
             PLATFORMIO_CORE_DIR=$(pio system info --json-output | jq -r '.core_dir.value')
-            PLATFORMIO_PACKAGES_DIR = "$PLATFORMIO_CORE_DIR/packages/framework-arduinoespressif32/tools/partitions"
+            PLATFORMIO_PACKAGES_DIR="${PLATFORMIO_CORE_DIR}/packages/framework-arduinoespressif32/tools/partitions"
 
             echo "Environment: $name"
             echo "Detected MCU: $MCU"
