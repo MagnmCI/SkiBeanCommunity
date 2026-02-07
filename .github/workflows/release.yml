@@ -54,6 +54,9 @@ jobs:
 
             MCU=$(pio run -e "$name" -t envdump | grep '^BOARD_MCU=' | cut -d= -f2)
 
+            PLATFORMIO_PACKAGES_DIR=$(pio system info --json | jq -r '.packages_dir')
+            BOOT_APP_PATH=$(find $PLATFORMIO_PACKAGES_DIR -name "boot_app0.bin" | head -n 1)
+
             echo "Environment: $name"
             echo "Detected MCU: $MCU"
 
@@ -64,7 +67,7 @@ jobs:
               --flash-size 4MB \
               0x0000  "$env/bootloader.bin" \
               0x8000  "$env/partitions.bin" \
-              0xe000  "~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
+              0xe000  "${BOOT_APP_PATH}" \
               0x10000 "$env/firmware.bin"
           done
 
