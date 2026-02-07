@@ -64,7 +64,7 @@ jobs:
               --flash-size 4MB \
               0x0000  "$env/bootloader.bin" \
               0x8000  "$env/partitions.bin" \
-              0xe000  "$PIO_HOME/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
+              0xe000  "~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
               0x10000 "$env/firmware.bin"
           done
 
