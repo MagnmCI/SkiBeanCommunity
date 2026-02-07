@@ -42,11 +42,29 @@ jobs:
       - name: Build firmware
         run: pio run
 
-      - name: Collect artifacts
+      - name: Create merged firmware binaries (single-path, auto-detected MCU)
         run: |
-          mkdir release
-          find .pio/build -name "firmware.bin" \
-            -exec sh -c 'cp "$1" "release/$(basename $(dirname $1)).bin"' _ {} \;
+          mkdir -p release
+
+          for env in .pio/build/*; do
+            name=$(basename "$env")
+
+            MCU=$(pio run -e "$name" -t envdump | grep '^BOARD_MCU=' | cut -d= -f2)
+
+            echo "Environment: $name"
+            echo "Detected MCU: $MCU"
+
+            esptool.py merge_bin \
+              --chip "$MCU" \
+              --output "release/${name}.bin" \
+              --flash_mode dio \
+              --flash_freq 80m \
+              --flash_size detect \
+              0x0000  "$env/bootloader.bin" \
+              0x8000  "$env/partitions.bin" \
+              0xe000  "$PIO_HOME/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
+              0x10000 "$env/firmware.bin"
+          done
 
       - name: Generate checksums
         run: |
