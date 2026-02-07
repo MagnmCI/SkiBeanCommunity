@@ -42,7 +42,7 @@ jobs:
       - name: Build firmware
         run: pio run
 
-      -name: Install esptool
+      - name: Install esptool
         run: pip install esptool
 
       - name: Create merged firmware binaries (single-path, auto-detected MCU)
