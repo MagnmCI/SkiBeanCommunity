@@ -168,6 +168,7 @@ class PIDMaxPowerCallback : public NimBLECharacteristicCallbacks {
 // HiBean notify response to write()
 void notifyNimBLEClient(const String& message) {
     D_println("Attempting to notify NimBLE client with: " + message);
+    delay(30); //Give up time so hibean sees delta between write and notify timestamps
 
     if (deviceConnected && pTxCharacteristic) {
         pTxCharacteristic->setValue(message.c_str());
