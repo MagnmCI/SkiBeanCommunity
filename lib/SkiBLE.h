@@ -13,19 +13,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
- /* Replaces Classic Bluetooth with NimBLE (NUS).
- *
- * Service UUID:
- *     6e400001-b5a3-f393-e0a9-e50e24dcca9e
- * Characteristics UUIDs:
- *   - Write Characteristic (RX):
- *     6e400002-b5a3-f393-e0a9-e50e24dcca9e
- *   - Notify Characteristic (TX):
- *     6e400003-b5a3-f393-e0a9-e50e24dcca9e
- *
- * Sends notifications for temperature/status data.
- * Expects commands via the write characteristic.*/
-
 #include <NimBLEDevice.h>
 #include <queue>    // for std::queue
 #include <string>   // for std::string
@@ -240,7 +227,7 @@ void extern initBLE() {
     // esp32 information to HiBean for support/debug purposes
     NimBLEService* devInfoService = pServer->createService("180A");
     NimBLECharacteristic* boardCharacteristic = devInfoService->createCharacteristic("2A29", NIMBLE_PROPERTY::READ);
-      boardCharacteristic->setValue(boardID_BLE);
+      boardCharacteristic->setValue(ARDUINO_BOARD);
     NimBLECharacteristic* sketchNameCharacteristic = devInfoService->createCharacteristic("2A28", NIMBLE_PROPERTY::READ);
       sketchNameCharacteristic->setValue(sketchName);
     NimBLECharacteristic* firmwareCharacteristic = devInfoService->createCharacteristic("2A26", NIMBLE_PROPERTY::READ);

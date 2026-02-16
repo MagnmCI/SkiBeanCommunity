@@ -37,13 +37,8 @@ void setLedColor(LedColor color) {
     case LED_GREEN: r = 0;  g = 10; b = 0;  break;
     case LED_BLACK: r = 0;  g = 0;  b = 0;  break;
   }
-
-  if (RGB_BUILTIN_LED_COLOR_ORDER == LED_COLOR_ORDER_GRB) {
-    rgbLedWrite(LED_PIN, g, r, b);
-  } else {
-    rgbLedWrite(LED_PIN, r, g, b);
-  }
   
+  rgbLedWrite(LED_BUILTIN, g, r, b);
 }
 
 void handleLED() {
