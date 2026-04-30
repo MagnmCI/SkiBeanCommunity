@@ -158,11 +158,19 @@ void handleVENT(uint8_t value) {
 }
 
 void handleDRUM(uint8_t value) {
+    value = constrain(value, 0, 100);
     if (value != 0) {
         setValue(&sendBuffer[DRUM_BYTE], 100);
     } else {
         setValue(&sendBuffer[DRUM_BYTE], 0);
     }
+
+    // send pwm signal to motor driver, if we have one
+    #ifdef ENA_PIN
+        int pwm = map(value, 0, 100, 0, 255);
+        ledcWrite(ENA_PIN, pwm);
+    #endif
+
     sendRoasterMessage();
     lastEventTime = micros();
 }

@@ -222,8 +222,6 @@ void extern initBLE() {
     pidMaxPowerDescriptor->setValue("PID Max Power: 0-100 (%)");
     pidMaxPowerCharacteristic->addDescriptor(pidMaxPowerDescriptor);
 
-    pService->start();
-
     // esp32 information to HiBean for support/debug purposes
     NimBLEService* devInfoService = pServer->createService("180A");
     NimBLECharacteristic* boardCharacteristic = devInfoService->createCharacteristic("2A29", NIMBLE_PROPERTY::READ);
@@ -233,8 +231,6 @@ void extern initBLE() {
     NimBLECharacteristic* firmwareCharacteristic = devInfoService->createCharacteristic("2A26", NIMBLE_PROPERTY::READ);
       firmwareCharacteristic->setValue(sketchName + " " + firmWareVersion);
     
-    devInfoService->start();
-
     NimBLEAdvertising* pAdvertising = pServer->getAdvertising();
     pAdvertising->setName(NimBLEDeviceName);
     pAdvertising->start();

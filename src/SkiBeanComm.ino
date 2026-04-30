@@ -29,7 +29,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-#define FW_VERSION "v1.2.3"
+#define FW_VERSION "v1.2.4"
 String firmWareVersion = String(FW_VERSION);
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
@@ -89,6 +89,20 @@ void setup() {
     // Ensure heat starts at 0% for safety
     manualHeatLevel = 0;
     handleHEAT(manualHeatLevel);
+
+    // setup PWM controller, if we have one as defined by existence of ENA_PIN
+    #ifdef ENA_PIN
+        #pragma message("setup includes PWM feature")
+        pinMode(IN1_PIN, OUTPUT);
+        pinMode(IN2_PIN, OUTPUT);
+
+        // New version of PWM settings (ESP32 Core 3.x)
+        ledcAttach(ENA_PIN, 20000, 8);
+
+        //Default direction
+        digitalWrite(IN1_PIN, HIGH);
+        digitalWrite(IN2_PIN, LOW);
+    #endif
 
     shutdown();
 }
