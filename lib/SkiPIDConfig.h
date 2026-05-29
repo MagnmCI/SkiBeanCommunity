@@ -17,13 +17,14 @@
 
 #include <PID_v1.h>   // Arduino PID library
 
+// note the defaults below
 class PIDConfig
 {
 public:
     PIDConfig()
         : kP_(9.0),
           kI_(0.3),
-          kD_(2.5),
+          kD_(1.5),
           sampleTime_(500L),
           pMode_(P_ON_M),
           maxPower_(100)

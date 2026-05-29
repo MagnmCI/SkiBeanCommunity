@@ -131,17 +131,14 @@ void SkyRoasterParser::handleEdge() {
         if (!lastEdgeWasLow) return;
         unsigned long lowDur = now - lastEdgeTime;
         lastEdgeWasLow = false;
-
-        if(debug) {
-            D_print("Low pulse: "); D_println(lowDur);
-        }
+        ESP_LOGV("SkiParser", "Low pulse: %ld", lowDur);
 
         switch (rxState) {
         case IDLE:
             if (lowDur >= START_MIN_US && lowDur <= START_MAX_US) {
                 byteIndex = 0; bitCount = 0; currentByte = 0;
                 rxState = RECEIVING;
-                if(debug) { D_println("Start detected") };
+                ESP_LOGD("SkiParser", "Start detected");
             }
             break;
 
@@ -149,10 +146,10 @@ void SkyRoasterParser::handleEdge() {
             uint8_t bitVal = 0xFF;
             if (lowDur < BIT0_MAX_US) bitVal = 0;
             else if (lowDur >= BIT1_MIN_US && lowDur <= BIT1_MAX_US) bitVal = 1;
-            else { rxState = IDLE; if(debug) { D_println("Invalid pulse, abort"); } return; }
+            else { rxState = IDLE; ESP_LOGD("SkiParser", "Invalid pulse, abort"); return; }
 
             currentByte |= (bitVal << bitCount);
-            if(debug) { D_print(bitVal); D_print(" "); }
+            ESP_LOGD("SkiParser", bitVal);
 
             if (++bitCount >= BITS_PER_BYTE) {
                 messageBuf[byteIndex++] = currentByte;
@@ -161,7 +158,7 @@ void SkyRoasterParser::handleEdge() {
                 if(byteIndex >= MSG_BYTES) {
                     newMessage = true;
                     rxState = IDLE;
-                    if(debug) { D_println("\nMessage complete"); }
+                    ESP_LOGD("SkiParser", "Message complete");
                 }
             }
             break;

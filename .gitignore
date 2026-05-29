@@ -5,3 +5,4 @@
 *.map
 .vscode/
 *.DS_Store
+logs/*

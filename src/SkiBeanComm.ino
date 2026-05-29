@@ -19,7 +19,6 @@
 
 #include <Arduino.h>
 #include <PID_v1.h>
-#include "../lib/SerialDebug.h"
 #include "../lib/SkiBLE.h"
 #include "../lib/SkiLED.h"
 #include "../lib/SkiCMD.h"
@@ -29,7 +28,7 @@
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
 // -----------------------------------------------------------------------------
-#define FW_VERSION "v1.2.3"
+#define FW_VERSION "v1.2.4"
 String firmWareVersion = String(FW_VERSION);
 String sketchName = String(__FILE__).substring(String(__FILE__).lastIndexOf('/')+1);
 
@@ -62,11 +61,17 @@ PID myPID(&pInput, &pOutput, &pSetpoint,
         myPIDConfig.getPMode(), DIRECT);  //pid instance with our default values
 
 void setup() {
+    esp_log_level_set("*", ESP_LOG_INFO);
     Serial.begin(115200);
-    D_println("Starting HiBean ESP32 BLE Roaster Control.");
+    ESP_LOGI("setup","Starting HiBean ESP32 BLE Roaster Control.");
     delay(3000); //let fw upload finish before we take over hwcdc serial tx/rx
 
-    D_println("Serial SERIAL_DEBUG ON!");
+    ESP_LOGI("CT1780","search CT1780...");
+    while(!CT1780.searchDevice(/*newAddr=*/sensorCt1780.uniqueAddr)) {
+        ESP_LOGE("CT1780","Fail! It could be the following: the bus is short-circuited, there are no devices, you have retrieved all the devices, or you have provided the wrong parameters!");
+        delay(1000);
+    }
+    ESP_LOGI("CT1780","Succeed!");
 
     // set pinmode on tx for commands to roaster, take it high
     pinMode(TX_PIN, OUTPUT);
@@ -105,7 +110,7 @@ void loop() {
         if(roaster.validate(msg)) {
             temp = roaster.getTemperature(msg);
         } else {
-            D_println("Checksum failed!");
+            ESP_LOGE("loop", "Roaster message checksum failed!");
         }
     }
 

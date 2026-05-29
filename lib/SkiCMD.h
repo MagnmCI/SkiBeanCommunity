@@ -14,6 +14,17 @@
  */
 
 #include "PID_v1.h"
+#include "DFRobot_CT1780.h"
+
+// Instantiate CT1780 lib
+DFRobot_CT1780 CT1780(CT1780_PIN);
+typedef struct 
+{
+  uint8_t uniqueAddr[8];
+  int configAddr;
+}sCT1780_t;
+sCT1780_t sensorCt1780;
+
 // -----------------------------------------------------------------------------
 // All HiBean commands TO roaster
 // -----------------------------------------------------------------------------
@@ -27,6 +38,7 @@ extern PID myPID;
 extern PIDConfig myPIDConfig;
 extern double pInput, pOutput, pSetpoint;
 extern int manualHeatLevel;
+extern 
 
 // -----------------------------------------------------------------------------
 // Timing Constants
@@ -110,7 +122,7 @@ void shutdown() {
 // -----------------------------------------------------------------------------
 void handleCHAN() {
     String message = "# Active channels set to 2100\n";
-    D_println(message);
+    ESP_LOGI("SkiCMD", "HandleCHAN: %s", message);
     notifyNimBLEClient(message);
 }
 
@@ -128,8 +140,11 @@ void handleREAD() {
     String readMsg = "0," + String(temp, 1) + "," + String(temp, 1) + "," +
           String(sendBuffer[HEAT_BYTE]) + "," +
           String(sendBuffer[VENT_BYTE]) + "\n";
-    //D_print("READ Output: ");
-    //D_println(readMsg);
+
+    ESP_LOGV("SkiCMD", "READ Output: %s", readMsg);
+
+    ESP_LOGI("TempRead","BT: %f C", temp);
+    ESP_LOGI("TempRead","CT1780: %f C", CT1780.getCelsius(sensorCt1780.uniqueAddr));
 
     notifyNimBLEClient(readMsg);
     sendRoasterMessage(); // send heartbeat message to roaster
@@ -185,7 +200,7 @@ void handleCOOL(uint8_t value) {
 }
 
 void eStop() {
-    D_println("Emergency Stop Activated! Heater OFF, Vent 100%");
+    ESP_LOGE("SkiCMD", "Emergency Stop Activated! Heater OFF, Vent 100%");
     handleHEAT(0);   // Turn off heater
     handleVENT(100); // Set vent to 100%
 }
@@ -206,12 +221,12 @@ void handlePIDControl() {
 void setPIDMode(bool usePID) {
     if (usePID) {
         myPID.SetMode(AUTOMATIC); // Enable PID
-        D_println("PID mode set to AUTOMATIC");
+        ESP_LOGI("SkiCMD", "PID mode set to AUTOMATIC");
     } else {
         myPID.SetMode(MANUAL); // Disable PID
         manualHeatLevel = 0;  // Set heat to 0% for safety
         handleHEAT(manualHeatLevel); // Apply the change immediately
-        D_println("PID mode set to MANUAL");
+        ESP_LOGI("SkiCMD", "PID mode set to MANUAL");
     }
 }
 
@@ -219,7 +234,7 @@ void parseAndExecuteCommands(String input) {
     input.trim();
     input.toUpperCase();
  
-    //D_println("Parsing command: " + input);
+    ESP_LOGV("SkiCMD","Parsing command: %s", input);
 
     int split1 = input.indexOf(';');
     String command = "";
@@ -250,8 +265,7 @@ void parseAndExecuteCommands(String input) {
             double newSetpoint = param.toDouble();
             if (newSetpoint > 0 && newSetpoint <= 300) {  // Example range check
                 pSetpoint = newSetpoint;
-                D_print("New Setpoint: ");
-                D_println(pSetpoint);
+                ESP_LOGI("SkiCMD", "New Setpoint: %f", pSetpoint);
             }
         } else if (subcommand == "T") {
             double pidTune[3]; //pp.p;ii.i;dd.d
@@ -271,8 +285,7 @@ void parseAndExecuteCommands(String input) {
             myPIDConfig.setKd(pidTune[2]);
             myPIDConfig.apply(myPID); // apply the pid params to running config
         } else if (subcommand == "PM") {
-            D_print("Setting PMode to: ");
-            D_println(param);
+            ESP_LOGI("SkiCMD", "Setting PMode to: %s", param);
             if (param == "M") {
               myPIDConfig.setPMode(P_ON_M);
               myPIDConfig.apply(myPID); // apply the pid params to running config
@@ -281,31 +294,30 @@ void parseAndExecuteCommands(String input) {
               myPIDConfig.apply(myPID); // apply the pid params to running config
             }
         } else if (subcommand == "CT") {
-            D_print("Setting Cycle Time to: ");
-            D_println(param.toInt());
+            ESP_LOGI("SkiCMD", "Setting Cycle Time to: %s", param);
             myPIDConfig.setSampleTime(param.toInt());
             myPIDConfig.apply(myPID);
         }
     } else if (command == "OT1") {  
-        D_println("Setting OT1: " + param);
+        ESP_LOGI("SkiCMD", "Setting OT1: %s", param);
         handleOT1(param.toInt());  // Manual heater control (only in MANUAL mode)
     } else if (command == "READ") {
         handleREAD();
     } else if (command == "OT2") { 
-        D_println("Setting OT2: " + param); 
+        ESP_LOGI("SkiCMD", "Setting OT2: %s", param); 
         handleVENT(param.toInt());  // Set fan duty
     } else if (command == "OFF") {  
         shutdown();  // Shut down system
     } else if (command == "ESTOP") {  
         eStop();  // Emergency stop (heater = 0, vent = 100)
     } else if (command == "DRUM") {  
-        D_println("Setting Drum: " + param); 
+        ESP_LOGI("SkiCMD", "Setting Drum: %s", param); 
         handleDRUM(param.toInt());  // Start/stop the drum
     } else if (command == "FILTER") { 
-        D_println("Setting Filter: " + param);  
+        ESP_LOGI("SkiCMD", "Setting Filter: %s" ,param);  
         handleFILTER(param.toInt());  // Turn on/off filter fan
     } else if (command == "COOL") {  
-        D_println("Setting Cool: " + param);  
+        ESP_LOGI("SkiCMD", "Setting Cool: %s", param);  
         handleCOOL(param.toInt());  // Cool the beans
     } else if (command == "CHAN") {  
         handleCHAN();  // Handle TC4 init message
