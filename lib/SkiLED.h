@@ -48,6 +48,7 @@ void handleLED() {
     if (currentLEDColor == LED_BLUE && deviceConnected) {
       setLedColor(LED_BLACK);
       currentLEDColor = LED_BLACK;
+      LED_LAST_ON_MS = t_now;
     } 
     else if (currentLEDColor == LED_BLUE) {
       setLedColor(LED_RED);
@@ -60,4 +61,5 @@ void handleLED() {
       LED_LAST_ON_MS = t_now;
     }
   }
+  return;
 }
