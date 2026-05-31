@@ -122,7 +122,6 @@ void shutdown() {
 // -----------------------------------------------------------------------------
 void handleCHAN() {
     String message = "# Active channels set to 2100\n";
-    ESP_LOGI("SkiCMD", "HandleCHAN: %s", message);
     notifyNimBLEClient(message);
 }
 
@@ -200,7 +199,7 @@ void handleCOOL(uint8_t value) {
 }
 
 void eStop() {
-    ESP_LOGE("SkiCMD", "Emergency Stop Activated! Heater OFF, Vent 100%");
+    ESP_LOGE("SkiCMD", "Emergency Stop Activated! Heater OFF, Vent ON.");
     handleHEAT(0);   // Turn off heater
     handleVENT(100); // Set vent to 100%
 }
@@ -222,10 +221,12 @@ void setPIDMode(bool usePID) {
     if (usePID) {
         myPID.SetMode(AUTOMATIC); // Enable PID
         ESP_LOGI("SkiCMD", "PID mode set to AUTOMATIC");
+        ESP_LOGI("SkiCMD", "PID mode set to AUTOMATIC");
     } else {
         myPID.SetMode(MANUAL); // Disable PID
         manualHeatLevel = 0;  // Set heat to 0% for safety
         handleHEAT(manualHeatLevel); // Apply the change immediately
+        ESP_LOGI("SkiCMD", "PID mode set to MANUAL");
         ESP_LOGI("SkiCMD", "PID mode set to MANUAL");
     }
 }
@@ -234,8 +235,6 @@ void parseAndExecuteCommands(String input) {
     input.trim();
     input.toUpperCase();
  
-    ESP_LOGV("SkiCMD","Parsing command: %s", input);
-
     int split1 = input.indexOf(';');
     String command = "";
     String param = "";
@@ -266,6 +265,7 @@ void parseAndExecuteCommands(String input) {
             if (newSetpoint > 0 && newSetpoint <= 300) {  // Example range check
                 pSetpoint = newSetpoint;
                 ESP_LOGI("SkiCMD", "New Setpoint: %f", pSetpoint);
+                ESP_LOGI("SkiCMD", "New Setpoint: %f", pSetpoint);
             }
         } else if (subcommand == "T") {
             double pidTune[3]; //pp.p;ii.i;dd.d
@@ -286,6 +286,7 @@ void parseAndExecuteCommands(String input) {
             myPIDConfig.apply(myPID); // apply the pid params to running config
         } else if (subcommand == "PM") {
             ESP_LOGI("SkiCMD", "Setting PMode to: %s", param);
+            ESP_LOGI("SkiCMD", "Setting PMode to: %s", param);
             if (param == "M") {
               myPIDConfig.setPMode(P_ON_M);
               myPIDConfig.apply(myPID); // apply the pid params to running config
@@ -294,30 +295,30 @@ void parseAndExecuteCommands(String input) {
               myPIDConfig.apply(myPID); // apply the pid params to running config
             }
         } else if (subcommand == "CT") {
-            ESP_LOGI("SkiCMD", "Setting Cycle Time to: %s", param);
+            ESP_LOGI("SkiCMD", "Setting Cycle Time to: %i", param.toInt());
             myPIDConfig.setSampleTime(param.toInt());
             myPIDConfig.apply(myPID);
         }
     } else if (command == "OT1") {  
-        ESP_LOGI("SkiCMD", "Setting OT1: %s", param);
+        ESP_LOGI("SkiCMD", "Setting OT1: %i", param.toInt());
         handleOT1(param.toInt());  // Manual heater control (only in MANUAL mode)
     } else if (command == "READ") {
         handleREAD();
     } else if (command == "OT2") { 
-        ESP_LOGI("SkiCMD", "Setting OT2: %s", param); 
+        ESP_LOGI("SkiCMD", "Setting OT2: %i", param.toInt()); 
         handleVENT(param.toInt());  // Set fan duty
     } else if (command == "OFF") {  
         shutdown();  // Shut down system
     } else if (command == "ESTOP") {  
         eStop();  // Emergency stop (heater = 0, vent = 100)
     } else if (command == "DRUM") {  
-        ESP_LOGI("SkiCMD", "Setting Drum: %s", param); 
+        ESP_LOGI("SkiCMD", "Setting Drum: %i", param.toInt()); 
         handleDRUM(param.toInt());  // Start/stop the drum
     } else if (command == "FILTER") { 
-        ESP_LOGI("SkiCMD", "Setting Filter: %s" ,param);  
+        ESP_LOGI("SkiCMD", "Setting Filter: %i", param.toInt());
         handleFILTER(param.toInt());  // Turn on/off filter fan
     } else if (command == "COOL") {  
-        ESP_LOGI("SkiCMD", "Setting Cool: %s", param);  
+        ESP_LOGI("SkiCMD", "Setting Cool: %i", param.toInt());  
         handleCOOL(param.toInt());  // Cool the beans
     } else if (command == "CHAN") {  
         handleCHAN();  // Handle TC4 init message
@@ -327,11 +328,9 @@ void parseAndExecuteCommands(String input) {
 }
 
 void pulsePin(int pin, int duration) {
-  #if SERIAL_DEBUG == 0
     digitalWrite(pin, LOW);
     delayMicroseconds(duration);
     digitalWrite(pin, HIGH);
-  #endif
 }
 
 // Control Bytes & Checksum

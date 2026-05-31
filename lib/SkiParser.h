@@ -21,15 +21,11 @@ extern char CorF;
 
 class SkyRoasterParser {
 public:
-    SkyRoasterParser() : debug(false) {}
 
     void begin(uint8_t pin);
     bool msgAvailable();
     void getMessage(uint8_t *dest);
     bool validate(const uint8_t *buf);
-
-    // --- Debug ---
-    void enableDebug(bool en) { debug = en; }
 
     // --- Structured Fields ---
     double getTemperature(uint8_t *buf); // in °C units
@@ -38,7 +34,13 @@ private:
     static void IRAM_ATTR edgeISR();
     void handleEdge();
 
-    bool debug;
+    inline void resetRx() {
+        rxState     = IDLE;
+        bitCount    = 0;
+        byteIndex   = 0;
+        currentByte = 0;
+    }
+    
     int pin;
 
     // Protocol constants
@@ -49,6 +51,9 @@ private:
     static const unsigned long BIT0_MAX_US  = 900;
     static const unsigned long BIT1_MIN_US  = 1200;
     static const unsigned long BIT1_MAX_US  = 2000;
+    
+    static const unsigned long FRAME_TIMEOUT_US = 20000;
+    static const unsigned long IDLE_GAP_US      = 3000;
 
     // State
     enum RxState { IDLE, RECEIVING };
@@ -85,6 +90,13 @@ void SkyRoasterParser::getMessage(uint8_t *dest) {
     for (uint8_t i = 0; i < MSG_BYTES; i++) dest[i] = messageBuf[i];
     newMessage = false;
     interrupts();
+
+    if (!validate(dest)) {
+        ESP_LOGV("SkiParser", "Checksum failed, forcing resync");
+        noInterrupts();
+        resetRx();
+        interrupts();
+    }
 }
 
 bool SkyRoasterParser::validate(const uint8_t *buf) {
@@ -122,46 +134,78 @@ void IRAM_ATTR SkyRoasterParser::edgeISR() {
 // --- Edge handler ---
 void SkyRoasterParser::handleEdge() {
     unsigned long now = micros();
-    bool pinIsLow = (digitalRead(digitalPinToInterrupt(this->pin)) == LOW);
+    bool pinIsLow = (digitalRead(this->pin) == LOW);
+
+    // Timeout protection (mid-frame stall)
+    if (rxState == RECEIVING && (now - lastEdgeTime) > FRAME_TIMEOUT_US) {
+        ESP_LOGV("SkiParser", "Frame timeout, resync");
+        resetRx();
+    }
 
     if (pinIsLow) {
         lastEdgeTime = now;
         lastEdgeWasLow = true;
-    } else {
-        if (!lastEdgeWasLow) return;
-        unsigned long lowDur = now - lastEdgeTime;
-        lastEdgeWasLow = false;
-        ESP_LOGV("SkiParser", "Low pulse: %ld", lowDur);
+        return;
+    }
 
-        switch (rxState) {
-        case IDLE:
-            if (lowDur >= START_MIN_US && lowDur <= START_MAX_US) {
-                byteIndex = 0; bitCount = 0; currentByte = 0;
-                rxState = RECEIVING;
-                ESP_LOGD("SkiParser", "Start detected");
+    // Rising edge
+    if (!lastEdgeWasLow) return;
+    lastEdgeWasLow = false;
+
+    unsigned long lowDur = now - lastEdgeTime;
+
+    ESP_LOGV("SkiParser", "Low pulse: %ld", lowDur);
+    
+    switch (rxState) {
+
+    case IDLE:
+        // Require clean idle gap before start
+        if (lowDur >= START_MIN_US &&
+            lowDur <= START_MAX_US) {
+
+            resetRx();
+            rxState = RECEIVING;
+
+            ESP_LOGV("SkiParser", "Start detected");
+        }
+        break;
+
+    case RECEIVING: {
+        uint8_t bitVal;
+
+        if (lowDur <= BIT0_MAX_US) {
+            bitVal = 0;
+        } else if (lowDur >= BIT1_MIN_US && lowDur <= BIT1_MAX_US) {
+            bitVal = 1;
+        } else {
+            ESP_LOGV("SkiParser", "Invalid pulse, abort");
+            resetRx();
+            return;
+        }
+
+        currentByte |= (bitVal << bitCount);
+        bitCount++;
+
+        ESP_LOGV("SkiParser", "BitVal: %i", bitVal);
+
+        if (bitCount >= BITS_PER_BYTE) {
+            if (byteIndex >= MSG_BYTES) {
+                ESP_LOGV("SkiParser", "Byte overflow, resync");
+                resetRx();
+                return;
             }
-            break;
 
-        case RECEIVING:
-            uint8_t bitVal = 0xFF;
-            if (lowDur < BIT0_MAX_US) bitVal = 0;
-            else if (lowDur >= BIT1_MIN_US && lowDur <= BIT1_MAX_US) bitVal = 1;
-            else { rxState = IDLE; ESP_LOGD("SkiParser", "Invalid pulse, abort"); return; }
+            messageBuf[byteIndex++] = currentByte;
+            currentByte = 0;
+            bitCount = 0;
 
-            currentByte |= (bitVal << bitCount);
-            ESP_LOGD("SkiParser", bitVal);
-
-            if (++bitCount >= BITS_PER_BYTE) {
-                messageBuf[byteIndex++] = currentByte;
-                currentByte = 0;
-                bitCount = 0;
-                if(byteIndex >= MSG_BYTES) {
-                    newMessage = true;
-                    rxState = IDLE;
-                    ESP_LOGD("SkiParser", "Message complete");
-                }
+            if (byteIndex >= MSG_BYTES) {
+                newMessage = true;
+                resetRx();
+                ESP_LOGV("SkiParser", "Message complete");
             }
-            break;
+        }
+        break;
         }
     }
 }

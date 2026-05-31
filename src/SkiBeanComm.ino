@@ -63,15 +63,8 @@ PID myPID(&pInput, &pOutput, &pSetpoint,
 void setup() {
     esp_log_level_set("*", ESP_LOG_INFO);
     Serial.begin(115200);
-    ESP_LOGI("setup","Starting HiBean ESP32 BLE Roaster Control.");
+    ESP_LOGI("setup", "Starting HiBean ESP32 BLE Roaster Control.");
     delay(3000); //let fw upload finish before we take over hwcdc serial tx/rx
-
-    ESP_LOGI("CT1780","search CT1780...");
-    while(!CT1780.searchDevice(/*newAddr=*/sensorCt1780.uniqueAddr)) {
-        ESP_LOGE("CT1780","Fail! It could be the following: the bus is short-circuited, there are no devices, you have retrieved all the devices, or you have provided the wrong parameters!");
-        delay(1000);
-    }
-    ESP_LOGI("CT1780","Succeed!");
 
     // set pinmode on tx for commands to roaster, take it high
     pinMode(TX_PIN, OUTPUT);
@@ -79,7 +72,6 @@ void setup() {
 
     // start parser on rx pin for bean temp readings from roaster
     roaster.begin(RX_PIN);
-    roaster.enableDebug(false);
 
     // Start BLE
     initBLE();
@@ -110,7 +102,7 @@ void loop() {
         if(roaster.validate(msg)) {
             temp = roaster.getTemperature(msg);
         } else {
-            ESP_LOGE("loop", "Roaster message checksum failed!");
+            ESP_LOGI("loop", "Checksum failed!");
         }
     }
 
