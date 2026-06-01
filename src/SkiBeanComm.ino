@@ -24,9 +24,11 @@
 #include "../lib/SkiCMD.h"
 #include "../lib/SkiPIDConfig.h"
 #include "../lib/SkiParser.h"
-#include "../lib/CT1780Async.h"
 
+#ifdef CT1780_PIN
+#include "../lib/CT1780Async.h"
 CT1780Async CT1780sensor(CT1780_PIN);
+#endif
 
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
@@ -109,9 +111,11 @@ void loop() {
         }
     }
 
+    #ifdef CT1780_PIN
     // acquire new reading from CT sensor if there is one
     CT1780sensor.update();
-
+    #endif
+    
     // process incoming ble commands from HiBean, could be read or write
     while (!messageQueue.empty()) {
         String msg = messageQueue.front(); //grab the first one

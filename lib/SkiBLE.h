@@ -59,11 +59,9 @@ class MyServerCallbacks : public NimBLEServerCallbacks {
     pServer->updateConnParams(connInfo.getConnHandle(), 12, 24, 4, 500);
    
     ESP_LOGI("SkiBLE", "Client connected.");
-    ESP_LOGI("SkiBLE", "Client connected.");
   }
   void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
     deviceConnected = false;
-    ESP_LOGI("SkiBLE", "Client disconnected. Restarting advertising...");
     ESP_LOGI("SkiBLE", "Client disconnected. Restarting advertising...");
     pServer->getAdvertising()->start();
   }
@@ -105,7 +103,6 @@ class PIDTuneCallback : public NimBLECharacteristicCallbacks {
   }
   void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
       ESP_LOGI("SkiBLE", "PIDTuneRead Received.");
-      ESP_LOGI("SkiBLE", "PIDTuneRead Received.");
       pCharacteristic->setValue(String(myPIDConfig.getKp()) + ',' + String(myPIDConfig.getKi()) + ',' + String(myPIDConfig.getKd()));
   }
 };
@@ -123,7 +120,6 @@ class PIDModeCallback : public NimBLECharacteristicCallbacks {
   }
   void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
       ESP_LOGI("SkiBLE", "PMode Received.");
-      ESP_LOGI("SkiBLE", "PMode Received.");
       if (myPIDConfig.getPMode() == P_ON_E) {
         pCharacteristic->setValue("P_ON_E");
       } else {
@@ -140,7 +136,6 @@ class PIDSampleTimeCallback : public NimBLECharacteristicCallbacks {
   }
   void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
       ESP_LOGI("SkiBLE", "SampleTime Received.");
-      ESP_LOGI("SkiBLE", "SampleTime Received.");
       pCharacteristic->setValue(String(myPIDConfig.getSampleTime()));
   }
 };
@@ -152,7 +147,6 @@ class PIDMaxPowerCallback : public NimBLECharacteristicCallbacks {
     myPIDConfig.apply(myPID);
   }
   void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
-      ESP_LOGI("SkiBLE", "MaxPower Received.");
       ESP_LOGI("SkiBLE", "MaxPower Received.");
       pCharacteristic->setValue(String(myPIDConfig.getMaxPower()));
   }
@@ -166,7 +160,6 @@ void notifyNimBLEClient(const String& message) {
     if (deviceConnected && pTxCharacteristic) {
         pTxCharacteristic->setValue(message.c_str());
         pTxCharacteristic->notify();
-       ESP_LOGV("SkiBLE", "Notification sent successfully.");
        ESP_LOGV("SkiBLE", "Notification sent successfully.");
     } else {
       ESP_LOGW("SkiBLE", "Notification failed. Device not connected or TX characteristic unavailable.");
@@ -242,6 +235,5 @@ void extern initBLE() {
     pAdvertising->setName(NimBLEDeviceName);
     pAdvertising->start();
     
-	  ESP_LOGI("SkiBLE", "BLE Advertising started...");
 	  ESP_LOGI("SkiBLE", "BLE Advertising started...");
 }

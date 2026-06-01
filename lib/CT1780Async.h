@@ -1,3 +1,5 @@
+#ifdef CT1780_PIN
+
 #ifndef CT1780_ASYNC_H
 #define CT1780_ASYNC_H
 
@@ -90,5 +92,7 @@ public:
         return _currentTemperature;
     }
 };
+
+#endif
 
 #endif

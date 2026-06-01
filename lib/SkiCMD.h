@@ -14,7 +14,10 @@
  */
 
 #include "PID_v1.h"
+
+#ifdef CT1780_PIN
 #include "CT1780Async.h"
+#endif
 
 // -----------------------------------------------------------------------------
 // All HiBean commands TO roaster
@@ -29,7 +32,9 @@ extern PID myPID;
 extern PIDConfig myPIDConfig;
 extern double pInput, pOutput, pSetpoint;
 extern int manualHeatLevel;
+#ifdef CT1780_PIN
 extern CT1780Async CT1780sensor;
+#endif
 
 // -----------------------------------------------------------------------------
 // Timing Constants
@@ -135,7 +140,11 @@ void handleREAD() {
     sendRoasterMessage(); // send heartbeat message to roaster
     lastEventTime = micros();
 
+    #ifdef CT1780_PIN
     ESP_LOGI("SkiCMD", "BT: %f, CT: %f", temp, CT1780sensor.getTemperature());
+    #else
+    ESP_LOGI("SkiCMD", "BT: %f", temp);
+    #endif
 }
 
 void handleHEAT(uint8_t value) {
@@ -209,12 +218,10 @@ void setPIDMode(bool usePID) {
     if (usePID) {
         myPID.SetMode(AUTOMATIC); // Enable PID
         ESP_LOGI("SkiCMD", "PID mode set to AUTOMATIC");
-        ESP_LOGI("SkiCMD", "PID mode set to AUTOMATIC");
     } else {
         myPID.SetMode(MANUAL); // Disable PID
         manualHeatLevel = 0;  // Set heat to 0% for safety
         handleHEAT(manualHeatLevel); // Apply the change immediately
-        ESP_LOGI("SkiCMD", "PID mode set to MANUAL");
         ESP_LOGI("SkiCMD", "PID mode set to MANUAL");
     }
 }
@@ -253,7 +260,6 @@ void parseAndExecuteCommands(String input) {
             if (newSetpoint > 0 && newSetpoint <= 300) {  // Example range check
                 pSetpoint = newSetpoint;
                 ESP_LOGI("SkiCMD", "New Setpoint: %f", pSetpoint);
-                ESP_LOGI("SkiCMD", "New Setpoint: %f", pSetpoint);
             }
         } else if (subcommand == "T") {
             double pidTune[3]; //pp.p;ii.i;dd.d
@@ -273,7 +279,6 @@ void parseAndExecuteCommands(String input) {
             myPIDConfig.setKd(pidTune[2]);
             myPIDConfig.apply(myPID); // apply the pid params to running config
         } else if (subcommand == "PM") {
-            ESP_LOGI("SkiCMD", "Setting PMode to: %s", param);
             ESP_LOGI("SkiCMD", "Setting PMode to: %s", param);
             if (param == "M") {
               myPIDConfig.setPMode(P_ON_M);
