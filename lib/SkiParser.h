@@ -92,7 +92,6 @@ void SkyRoasterParser::getMessage(uint8_t *dest) {
     interrupts();
 
     if (!validate(dest)) {
-        ESP_LOGV("SkiParser", "Checksum failed, forcing resync");
         noInterrupts();
         resetRx();
         interrupts();
@@ -138,7 +137,6 @@ void SkyRoasterParser::handleEdge() {
 
     // Timeout protection (mid-frame stall)
     if (rxState == RECEIVING && (now - lastEdgeTime) > FRAME_TIMEOUT_US) {
-        ESP_LOGV("SkiParser", "Frame timeout, resync");
         resetRx();
     }
 
@@ -153,8 +151,6 @@ void SkyRoasterParser::handleEdge() {
     lastEdgeWasLow = false;
 
     unsigned long lowDur = now - lastEdgeTime;
-
-    ESP_LOGV("SkiParser", "Low pulse: %ld", lowDur);
     
     switch (rxState) {
 
@@ -165,8 +161,6 @@ void SkyRoasterParser::handleEdge() {
 
             resetRx();
             rxState = RECEIVING;
-
-            ESP_LOGV("SkiParser", "Start detected");
         }
         break;
 
@@ -178,7 +172,6 @@ void SkyRoasterParser::handleEdge() {
         } else if (lowDur >= BIT1_MIN_US && lowDur <= BIT1_MAX_US) {
             bitVal = 1;
         } else {
-            ESP_LOGV("SkiParser", "Invalid pulse, abort");
             resetRx();
             return;
         }
@@ -186,11 +179,8 @@ void SkyRoasterParser::handleEdge() {
         currentByte |= (bitVal << bitCount);
         bitCount++;
 
-        ESP_LOGV("SkiParser", "BitVal: %i", bitVal);
-
         if (bitCount >= BITS_PER_BYTE) {
             if (byteIndex >= MSG_BYTES) {
-                ESP_LOGV("SkiParser", "Byte overflow, resync");
                 resetRx();
                 return;
             }
@@ -202,7 +192,6 @@ void SkyRoasterParser::handleEdge() {
             if (byteIndex >= MSG_BYTES) {
                 newMessage = true;
                 resetRx();
-                ESP_LOGV("SkiParser", "Message complete");
             }
         }
         break;

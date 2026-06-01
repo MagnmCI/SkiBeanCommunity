@@ -14,16 +14,7 @@
  */
 
 #include "PID_v1.h"
-#include "DFRobot_CT1780.h"
-
-// Instantiate CT1780 lib
-DFRobot_CT1780 CT1780(CT1780_PIN);
-typedef struct 
-{
-  uint8_t uniqueAddr[8];
-  int configAddr;
-}sCT1780_t;
-sCT1780_t sensorCt1780;
+#include "CT1780Async.h"
 
 // -----------------------------------------------------------------------------
 // All HiBean commands TO roaster
@@ -38,7 +29,7 @@ extern PID myPID;
 extern PIDConfig myPIDConfig;
 extern double pInput, pOutput, pSetpoint;
 extern int manualHeatLevel;
-extern 
+extern CT1780Async CT1780sensor;
 
 // -----------------------------------------------------------------------------
 // Timing Constants
@@ -140,14 +131,11 @@ void handleREAD() {
           String(sendBuffer[HEAT_BYTE]) + "," +
           String(sendBuffer[VENT_BYTE]) + "\n";
 
-    ESP_LOGV("SkiCMD", "READ Output: %s", readMsg);
-
-    ESP_LOGI("TempRead","BT: %f C", temp);
-    ESP_LOGI("TempRead","CT1780: %f C", CT1780.getCelsius(sensorCt1780.uniqueAddr));
-
     notifyNimBLEClient(readMsg);
     sendRoasterMessage(); // send heartbeat message to roaster
     lastEventTime = micros();
+
+    ESP_LOGI("SkiCMD", "BT: %f, CT: %f", temp, CT1780sensor.getTemperature());
 }
 
 void handleHEAT(uint8_t value) {

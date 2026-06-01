@@ -24,6 +24,9 @@
 #include "../lib/SkiCMD.h"
 #include "../lib/SkiPIDConfig.h"
 #include "../lib/SkiParser.h"
+#include "../lib/CT1780Async.h"
+
+CT1780Async CT1780sensor(CT1780_PIN);
 
 // -----------------------------------------------------------------------------
 // Current Sketch and Release Version (for BLE device info)
@@ -102,9 +105,12 @@ void loop() {
         if(roaster.validate(msg)) {
             temp = roaster.getTemperature(msg);
         } else {
-            ESP_LOGI("loop", "Checksum failed!");
+            ESP_LOGV("loop", "Checksum failed!");
         }
     }
+
+    // acquire new reading from CT sensor if there is one
+    CT1780sensor.update();
 
     // process incoming ble commands from HiBean, could be read or write
     while (!messageQueue.empty()) {
