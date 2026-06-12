@@ -132,7 +132,15 @@ void handleOT1(uint8_t value) {
 }
 
 void handleREAD() {
-    String readMsg = "0," + String(temp, 1) + "," + String(temp, 1) + "," +
+    double ET;
+    #ifdef CT1780_PIN
+    ET = CT1780sensor.getTemperature();
+    #else
+    ET = temp;
+    #endif
+
+    //0: Ambient, 1: ET, 2: BT, 3: heater, 4: fan
+    String readMsg = "0," + String(ET, 1) + "," + String(temp, 1) + "," +
           String(sendBuffer[HEAT_BYTE]) + "," +
           String(sendBuffer[VENT_BYTE]) + "\n";
 
