@@ -1,5 +1,6 @@
 name: Build and Release Firmware
 # triggered by: `git tag vX.X.X; git push origin vX.X.X`
+# reversed with: `git tag -d vX.X.X; git push origin --delete vX.X.X`
 
 permissions:
   contents: write
